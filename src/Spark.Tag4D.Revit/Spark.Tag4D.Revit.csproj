@@ -29,23 +29,22 @@
   <!-- Writes the .addin manifest that sits next to the assemblies (used by the installer's ApplicationPlugins bundle). -->
   <Target Name="WriteAddinManifest" AfterTargets="Build">
     <PropertyGroup>
-      <AddinManifest>$(OutDir)Spark.Tag4D.Revit.addin</AddinManifest>
       <AddinAssemblyPath Condition="'$(AddinAssemblyPath)' == ''">Spark.Tag4D.Revit.dll</AddinAssemblyPath>
+      <AddinManifestText><![CDATA[<?xml version="1.0" encoding="utf-8"?>
+<RevitAddIns>
+  <AddIn Type="Application">
+    <Name>Spark.Tag4D</Name>
+    <Assembly>@@ASSEMBLY@@</Assembly>
+    <AddInId>D917A2A3-EE19-4EB3-9CFC-3A96D838C9A3</AddInId>
+    <FullClassName>Spark.Tag4D.Revit.Tag4DApplication</FullClassName>
+    <VendorId>SPRK</VendorId>
+    <VendorDescription>Spark</VendorDescription>
+  </AddIn>
+</RevitAddIns>]]></AddinManifestText>
     </PropertyGroup>
-    <ItemGroup>
-      <AddinLine Include="&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;" />
-      <AddinLine Include="&lt;RevitAddIns&gt;" />
-      <AddinLine Include="  &lt;AddIn Type=&quot;Application&quot;&gt;" />
-      <AddinLine Include="    &lt;Name&gt;Spark.Tag4D&lt;/Name&gt;" />
-      <AddinLine Include="    &lt;Assembly&gt;$(AddinAssemblyPath)&lt;/Assembly&gt;" />
-      <AddinLine Include="    &lt;AddInId&gt;D917A2A3-EE19-4EB3-9CFC-3A96D838C9A3&lt;/AddInId&gt;" />
-      <AddinLine Include="    &lt;FullClassName&gt;Spark.Tag4D.Revit.Tag4DApplication&lt;/FullClassName&gt;" />
-      <AddinLine Include="    &lt;VendorId&gt;SPRK&lt;/VendorId&gt;" />
-      <AddinLine Include="    &lt;VendorDescription&gt;Spark&lt;/VendorDescription&gt;" />
-      <AddinLine Include="  &lt;/AddIn&gt;" />
-      <AddinLine Include="&lt;/RevitAddIns&gt;" />
-    </ItemGroup>
-    <WriteLinesToFile File="$(AddinManifest)" Lines="@(AddinLine)" Overwrite="true" WriteOnlyWhenDifferent="true" />
+    <WriteLinesToFile File="$(OutDir)Spark.Tag4D.Revit.addin"
+                      Lines="$(AddinManifestText.Replace('@@ASSEMBLY@@', 'Spark.Tag4D.Revit.dll'))"
+                      Overwrite="true" WriteOnlyWhenDifferent="true" />
   </Target>
 
   <!-- Developer convenience: copy the build to the current user's Revit add-ins folder. -->
@@ -58,10 +57,9 @@
       <DeployFile Include="$(OutDir)**\*.*" Exclude="$(OutDir)*.addin;$(OutDir)**\*.pdb" />
     </ItemGroup>
     <Copy SourceFiles="@(DeployFile)" DestinationFiles="@(DeployFile->'$(DeployDir)\%(RecursiveDir)%(Filename)%(Extension)')" />
-    <PropertyGroup>
-      <AddinAssemblyPath>Spark.Tag4D\Spark.Tag4D.Revit.dll</AddinAssemblyPath>
-    </PropertyGroup>
-    <WriteLinesToFile File="$(RevitAddinsDir)\Spark.Tag4D.addin" Lines="@(AddinLine->Replace('Spark.Tag4D.Revit.dll&lt;/Assembly&gt;','Spark.Tag4D\Spark.Tag4D.Revit.dll&lt;/Assembly&gt;'))" Overwrite="true" />
+    <WriteLinesToFile File="$(RevitAddinsDir)\Spark.Tag4D.addin"
+                      Lines="$(AddinManifestText.Replace('@@ASSEMBLY@@', 'Spark.Tag4D\Spark.Tag4D.Revit.dll'))"
+                      Overwrite="true" />
   </Target>
 
 </Project>
