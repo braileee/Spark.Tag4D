@@ -1,177 +1,66 @@
-﻿using Spark.Tag4D.Core.Configuration;
-using Spark.Tag4D.Core.Models;
-using Spark.Tag4D.Core.Utils;
-using Spark.Tag4D.Settings.Models;
-using NPOI.SS.UserModel;
-using NPOI.XSSF.UserModel;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
+using Spark.Tag4D.Core.Configuration;
+using Spark.Tag4D.Core.Models;
+using Spark.Tag4D.Core.Spreadsheets;
+using Spark.Tag4D.Settings.Models;
 
 namespace Spark.Tag4D.Settings.Services
 {
+    /// <summary>
+    /// Reads and writes the "&lt;name&gt; Match" sheets: every column but the last holds a source property,
+    /// the last column holds the target property whose value is derived from them.
+    /// </summary>
     public class MatchExcelService
     {
         private const string MatchSuffix = " Match";
         private const string ExactMatchSuffix = " Exact Match";
 
-        public List<MatchTable> Load(
-            string filePath,
-            SettingsRoot settingsRoot)
+        public List<MatchTable> Load(string filePath, SettingsRoot settingsRoot)
         {
-            List<string> propertyNames =
-                ExcelDataLoader.GetPropertyNames(
-                    filePath,
-                    settingsRoot.ExcelSettings.PropertiesSheet);
+            List<string> propertyNames = ExcelDataLoader.GetPropertyNames(filePath, settingsRoot.ExcelSettings.PropertiesSheet);
+            Workbook workbook = Workbook.Open(filePath);
 
             var tables = new List<MatchTable>();
 
-            using var stream = File.Open(
-                filePath,
-                FileMode.Open,
-                FileAccess.Read,
-                FileShare.ReadWrite);
-
-            IWorkbook workbook =
-                new XSSFWorkbook(stream);
-
-            for (int i = 0; i < workbook.NumberOfSheets; i++)
+            foreach (Worksheet sheet in workbook.Sheets.Where(IsMatchSheet))
             {
-                var sheet =
-                    workbook.GetSheetAt(i);
-
-                if (!sheet.SheetName.EndsWith(
-                        MatchSuffix,
-                        StringComparison.OrdinalIgnoreCase))
-                {
-                    continue;
-                }
-
-                if (sheet.SheetName.EndsWith(
-                        ExactMatchSuffix,
-                        StringComparison.OrdinalIgnoreCase))
-                {
-                    continue;
-                }
-
-                var headerRow =
-                    sheet.GetRow(0);
-
-                if (headerRow == null)
-                {
-                    continue;
-                }
-
-                int columnCount =
-                    headerRow.LastCellNum;
-
-                if (columnCount < 2)
+                int columnCount = sheet.GetColumnCount(0);
+                if (sheet.RowCount == 0 || columnCount < 2)
                 {
                     continue;
                 }
 
                 var table = new MatchTable
                 {
-                    SheetPrefix =
-                        sheet.SheetName.Substring(
-                            0,
-                            sheet.SheetName.Length -
-                            MatchSuffix.Length),
-
-                    AvailableProperties =
-                        propertyNames
+                    SheetPrefix = sheet.Name.Substring(0, sheet.Name.Length - MatchSuffix.Length),
+                    AvailableProperties = propertyNames
                 };
 
-                // Source properties
-
-                for (int columnIndex = 0;
-                     columnIndex < columnCount - 1;
-                     columnIndex++)
+                for (int column = 0; column < columnCount - 1; column++)
                 {
-                    string header =
-                        headerRow.GetCell(columnIndex)?
-                            .ToString()
-                        ?? string.Empty;
-
-                    table.SourceProperties.Add(
-                        propertyNames.FirstOrDefault(
-                            p => p == header) ?? header);
+                    table.SourceProperties.Add(Canonical(propertyNames, sheet.GetText(0, column)));
                 }
 
-                // Target property
+                table.TargetProperty = Canonical(propertyNames, sheet.GetText(0, columnCount - 1));
 
-                string targetHeader =
-                    headerRow.GetCell(columnCount - 1)?
-                        .ToString()
-                    ?? string.Empty;
-
-                table.TargetProperty =
-                    propertyNames.FirstOrDefault(
-                        p => p == targetHeader)
-                    ?? targetHeader;
-
-                int rowIndex = 1;
-
-                while (true)
+                // Data rows run until the first completely empty row.
+                for (int row = 1; row < sheet.RowCount && !sheet.IsRowEmpty(row); row++)
                 {
-                    IRow? row =
-                        sheet.GetRow(rowIndex);
+                    var matchRow = new MatchRow();
 
-                    if (row == null)
+                    for (int column = 0; column < columnCount - 1; column++)
                     {
-                        break;
-                    }
-
-                    bool hasData = false;
-
-                    var matchRow =
-                        new MatchRow();
-
-                    for (int columnIndex = 0;
-                         columnIndex < columnCount - 1;
-                         columnIndex++)
-                    {
-                        string value =
-                            row.GetCell(columnIndex)?
-                                .ToString()?
-                                .Trim()
-                            ?? string.Empty;
-
-                        if (!string.IsNullOrWhiteSpace(value))
+                        matchRow.Criteria.Add(new MatchCriterion
                         {
-                            hasData = true;
-                        }
-
-                        matchRow.Criteria.Add(
-                            new MatchCriterion
-                            {
-                                PropertyName =
-                                    table.SourceProperties[columnIndex],
-                                Value = value
-                            });
+                            PropertyName = table.SourceProperties[column],
+                            Value = sheet.GetText(row, column).Trim()
+                        });
                     }
 
-                    matchRow.TargetValue =
-                        row.GetCell(columnCount - 1)?
-                            .ToString()?
-                            .Trim()
-                        ?? string.Empty;
-
-                    if (!string.IsNullOrWhiteSpace(
-                            matchRow.TargetValue))
-                    {
-                        hasData = true;
-                    }
-
-                    if (!hasData)
-                    {
-                        break;
-                    }
-
+                    matchRow.TargetValue = sheet.GetText(row, columnCount - 1).Trim();
                     table.Rows.Add(matchRow);
-
-                    rowIndex++;
                 }
 
                 tables.Add(table);
@@ -180,152 +69,54 @@ namespace Spark.Tag4D.Settings.Services
             return tables;
         }
 
-        public void Save(
-            string filePath,
-            IEnumerable<MatchTable> tables)
+        public void Save(string filePath, IEnumerable<MatchTable> tables)
         {
-            XSSFWorkbook workbook =
-                XSSFWorkbookUtils.OpenExcelFile(
-                    filePath,
-                    FileAccess.ReadWrite);
+            Workbook workbook = Workbook.Open(filePath);
+            List<MatchTable> tableList = tables.ToList();
 
-            var tableList =
-                tables.ToList();
+            var validNames = new HashSet<string>(
+                tableList.Select(t => t.SheetPrefix + MatchSuffix),
+                StringComparer.OrdinalIgnoreCase);
 
-            RemoveDeletedMatchSheets(
-                workbook,
-                tableList);
-
-            foreach (var table in tableList)
+            // Drop sheets of tables that were deleted in the editor.
+            foreach (string stale in workbook.Sheets.Where(IsMatchSheet).Select(s => s.Name).Where(n => !validNames.Contains(n)).ToList())
             {
-                string sheetName =
-                    $"{table.SheetPrefix}{MatchSuffix}";
+                workbook.RemoveSheet(stale);
+            }
 
-                ISheet? sheet =
-                    workbook.GetSheet(sheetName);
+            foreach (MatchTable table in tableList)
+            {
+                string sheetName = table.SheetPrefix + MatchSuffix;
+                Worksheet sheet = workbook.FindSheet(sheetName) ?? workbook.AddSheet(sheetName);
+                sheet.Clear();
 
-                if (sheet == null)
-                {
-                    sheet =
-                        workbook.CreateSheet(
-                            sheetName);
-                }
-                else
-                {
-                    ClearSheet(sheet);
-                }
-
-                // Headers
-
-                var headerRow =
-                    sheet.CreateRow(0);
-
-                for (int columnIndex = 0;
-                     columnIndex < table.SourceProperties.Count;
-                     columnIndex++)
-                {
-                    headerRow.CreateCell(columnIndex)
-                        .SetCellValue(
-                            table.SourceProperties[columnIndex]);
-                }
-
-                headerRow.CreateCell(
-                    table.SourceProperties.Count)
-                    .SetCellValue(
-                        table.TargetProperty);
-
-                // Data
+                var header = table.SourceProperties.Cast<object>().ToList();
+                header.Add(table.TargetProperty);
+                sheet.SetRow(0, header);
 
                 int rowIndex = 1;
-
-                foreach (var item in table.Rows)
+                foreach (MatchRow row in table.Rows)
                 {
-                    var row =
-                        sheet.CreateRow(rowIndex++);
-
-                    for (int columnIndex = 0;
-                         columnIndex < item.Criteria.Count;
-                         columnIndex++)
-                    {
-                        row.CreateCell(columnIndex)
-                           .SetCellValue(
-                               item.Criteria[columnIndex].Value);
-                    }
-
-                    row.CreateCell(
-                        item.Criteria.Count)
-                       .SetCellValue(
-                           item.TargetValue);
+                    var values = row.Criteria.Select(c => (object)c.Value).ToList();
+                    values.Add(row.TargetValue);
+                    sheet.SetRow(rowIndex++, values);
                 }
 
-                for (int i = 0;
-                     i < table.SourceProperties.Count + 1;
-                     i++)
-                {
-                    sheet.AutoSizeColumn(i);
-                }
+                sheet.AutoSizeColumns(table.SourceProperties.Count + 1);
             }
 
-            XSSFWorkbookUtils.WriteAndClose(
-                workbook,
-                filePath);
+            workbook.Save(filePath);
         }
 
-        private static void ClearSheet(
-            ISheet sheet)
+        private static bool IsMatchSheet(Worksheet sheet)
         {
-            for (int i = sheet.LastRowNum;
-                 i >= 0;
-                 i--)
-            {
-                var row =
-                    sheet.GetRow(i);
-
-                if (row != null)
-                {
-                    sheet.RemoveRow(row);
-                }
-            }
+            return sheet.Name.EndsWith(MatchSuffix, StringComparison.OrdinalIgnoreCase)
+                   && !sheet.Name.EndsWith(ExactMatchSuffix, StringComparison.OrdinalIgnoreCase);
         }
 
-        private static void RemoveDeletedMatchSheets(
-            IWorkbook workbook,
-            IEnumerable<MatchTable> tables)
+        private static string Canonical(IEnumerable<string> propertyNames, string header)
         {
-            var validSheetNames =
-                tables
-                    .Select(t =>
-                        $"{t.SheetPrefix}{MatchSuffix}")
-                    .ToHashSet(
-                        StringComparer.OrdinalIgnoreCase);
-
-            for (int i = workbook.NumberOfSheets - 1;
-                 i >= 0;
-                 i--)
-            {
-                var sheet =
-                    workbook.GetSheetAt(i);
-
-                if (!sheet.SheetName.EndsWith(
-                        MatchSuffix,
-                        StringComparison.OrdinalIgnoreCase))
-                {
-                    continue;
-                }
-
-                if (sheet.SheetName.EndsWith(
-                        ExactMatchSuffix,
-                        StringComparison.OrdinalIgnoreCase))
-                {
-                    continue;
-                }
-
-                if (!validSheetNames.Contains(
-                        sheet.SheetName))
-                {
-                    workbook.RemoveSheetAt(i);
-                }
-            }
+            return propertyNames.FirstOrDefault(name => name == header) ?? header;
         }
     }
 }

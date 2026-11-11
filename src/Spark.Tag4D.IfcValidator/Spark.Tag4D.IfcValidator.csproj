@@ -1,41 +1,26 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
-	<PropertyGroup>
-		<OutputType>WinExe</OutputType>
-		<TargetFramework>net8.0-windows</TargetFramework>
-		<UseWPF>true</UseWPF>
-		<UseWindowsForms>true</UseWindowsForms>
-		<Configurations>DebugStandalone;ReleaseStandalone</Configurations>
-	</PropertyGroup>
+  <!-- Standalone IFC validator. Xbim is the only third-party runtime dependency of the whole product. -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <RootNamespace>Spark.Tag4D.IfcValidator</RootNamespace>
+    <AssemblyName>Spark.Tag4D.IfcValidator</AssemblyName>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+    <Description>Validates IFC files against the Spark.Tag4D parameters workbook.</Description>
+  </PropertyGroup>
 
-	<ItemGroup>
-		<PackageReference Include="MahApps.Metro" Version="2.4.11" />
-		<PackageReference Include="Prism.Wpf" Version="9.0.537" />
-		<PackageReference Include="NPOI" Version="2.5.6" />
-		<PackageReference Include="Xbim.Essentials" Version="6.0.565" />
-	</ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Xbim.Essentials" />
+  </ItemGroup>
 
-	<ItemGroup>
-		<Compile Update="Properties\Settings.Designer.cs">
-			<DesignTimeSharedInput>True</DesignTimeSharedInput>
-			<AutoGen>True</AutoGen>
-			<DependentUpon>Settings.settings</DependentUpon>
-		</Compile>
-	</ItemGroup>
-
-	<ItemGroup>
-		<None Update="Properties\Settings.settings">
-			<Generator>SettingsSingleFileGenerator</Generator>
-			<LastGenOutput>Settings.Designer.cs</LastGenOutput>
-		</None>
-	</ItemGroup>
-
-	<ItemGroup>
-	  <Folder Include="Properties\PublishProfiles\" />
-	</ItemGroup>
-
-	<ItemGroup>
-	  <ProjectReference Include="..\Spark.Tag4D.Core\Spark.Tag4D.Core.csproj" />
-	</ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Spark.Tag4D.Core\Spark.Tag4D.Core.csproj" />
+    <ProjectReference Include="..\Spark.Tag4D.UI\Spark.Tag4D.UI.csproj" />
+  </ItemGroup>
 
 </Project>

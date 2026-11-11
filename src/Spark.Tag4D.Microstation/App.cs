@@ -8,6 +8,8 @@ using Spark.Tag4D.Core.Utils;
 using Spark.Tag4D.Microstation.Models;
 using Spark.Tag4D.Microstation.ViewModels;
 using Spark.Tag4D.Microstation.Views;
+using Spark.Tag4D.Settings.ViewModels;
+using Spark.Tag4D.Settings.Views;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -36,7 +38,7 @@ namespace Spark.Tag4D.Microstation
         public List<PropertySetItem> PropertySetItems { get; private set; } = new List<PropertySetItem>();
         public List<PicklistGroup> PicklistGroups { get; private set; } = new List<PicklistGroup>();
         public List<LayerMappingItem> LayerMappingItems { get; private set; } = new List<LayerMappingItem>();
-        public List<ExpressionItem> ExpressionItems { get; private set; } = new List<ExpressionItem>();
+        public List<ExpressionRule> ExpressionItems { get; private set; } = new List<ExpressionRule>();
         public List<PropertyValueMatch> PropertyValueMatches { get; private set; } = new List<PropertyValueMatch>();
         public List<ComposedPropertyItem> ComposedItems { get; private set; } = new List<ComposedPropertyItem>();
         public List<PropertyValueMatch> PropertyValueExactMatches { get; private set; } = new List<PropertyValueMatch>();
@@ -67,8 +69,8 @@ namespace Spark.Tag4D.Microstation
                 LoadPickLists(dgnFile);
 
                 // Generate item types aka custom properties
-                string libraryName = nameof(Spark.Tag4D.Microstation);
-                ItemTypeCreator itemTypeCreator = new ItemTypeCreator(dgnFile, nameof(Spark.Tag4D.Microstation), PropertySetItems, PickLists);
+                string libraryName = Constants.ProductName;
+                ItemTypeCreator itemTypeCreator = new ItemTypeCreator(dgnFile, libraryName, PropertySetItems, PickLists);
                 List<ItemType> itemTypes = itemTypeCreator.Create();
 
                 DgnModel model = Session.Instance.GetActiveDgnModel();
@@ -82,56 +84,28 @@ namespace Spark.Tag4D.Microstation
                 LayerPropertyMapper layerPropertyMapper = new LayerPropertyMapper(dgnFile, PropertySetItems, LayerMappingItems, elements);
                 layerPropertyMapper.Map();
             }
-            catch (Exception)
+            catch (TagDataException exception)
             {
-                MessageBox.Show($"Error loading parameters. Please check the settings and excel files.", "Error");
+                MessageBox.Show(exception.Message, "Spark.Tag4D", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+            catch (Exception exception)
+            {
+                MessageBox.Show($"Error loading parameters: {exception.Message}", "Spark.Tag4D", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
         private void LoadDgnData()
         {
-            try
-            {
-                string assemblyFolder = AssemblyUtils.GetFolder(typeof(App));
-                string defaultSettingsPath = System.IO.Path.Combine(assemblyFolder, Constants.FilesFolder, Constants.Tag4DFolder, Constants.JsonSettingsFileName);
-                string currentSettingsPath = Properties.Settings.Default.SettingsFilePath;
+            TagData data = TagData.Load();
 
-                if (string.IsNullOrEmpty(currentSettingsPath) || !File.Exists(currentSettingsPath))
-                {
-                    currentSettingsPath = defaultSettingsPath;
-                }
-
-                if (!File.Exists(currentSettingsPath))
-                {
-                    MessageBox.Show($"Can't load settings file from {defaultSettingsPath}", "Error");
-                }
-
-                SettingsRoot = SettingsLoader.Load(currentSettingsPath);
-                Properties.Settings.Default.SettingsFilePath = currentSettingsPath;
-                Properties.Settings.Default.Save();
-
-                string excelFilePath = ExcelDataLoader.LoadOrPromptExcelFilePath(SettingsRoot.ExcelSettings.FileLinkSettings);
-
-                if (string.IsNullOrEmpty(excelFilePath))
-                {
-                    MessageBox.Show($"No excel file selected", "Error");
-                    return;
-                }
-
-                PropertySetItems = ExcelDataLoader.LoadPropertySetItems(excelFilePath, SettingsRoot.ExcelSettings.PropertiesSheet);
-                PicklistGroups = ExcelDataLoader.LoadPicklistGroups(excelFilePath, SettingsRoot.ExcelSettings.PicklistSheet);
-                LayerMappingItems = ExcelDataLoader.ReadLayerMappings(excelFilePath, SettingsRoot.ExcelSettings.LayersMappingSheet);
-                ExpressionItems = ExcelDataLoader.LoadExpressions(excelFilePath, SettingsRoot.ExcelSettings.ExpressionSheet);
-                PropertyValueMatches = ExcelDataLoader.LoadPropertiesValueMatches(excelFilePath, SettingsRoot.ExcelSettings.PropertyMatchSheet);
-                ComposedItems = ExcelDataLoader.LoadComposed(excelFilePath, SettingsRoot.ExcelSettings.ComposedSheet);
-                PropertyValueExactMatches = ExcelDataLoader.LoadPropertiesExactValueMatches(excelFilePath, SettingsRoot.ExcelSettings.PropertyExactMatchSheet);
-
-                var dgnFile = Session.Instance.GetActiveDgnFile();
-            }
-            catch (Exception)
-            {
-                MessageBox.Show($"Error loading data from dgn file and excel. Please check the settings and excel files.", "Error");
-            }
+            SettingsRoot = data.Settings;
+            PropertySetItems = data.PropertySets;
+            PicklistGroups = data.Picklists;
+            LayerMappingItems = data.LayerMappings;
+            ExpressionItems = data.Expressions;
+            PropertyValueMatches = data.Matches;
+            ComposedItems = data.Composed;
+            PropertyValueExactMatches = data.ExactMatches;
         }
 
         private void LoadPickLists(DgnFile dgnFile)
@@ -164,9 +138,13 @@ namespace Spark.Tag4D.Microstation
                 parametersTagElementsView.Show();
 
             }
-            catch (Exception)
+            catch (TagDataException exception)
             {
-                MessageBox.Show($"Error tagging elements. Please check the settings and excel files.", "Error");
+                MessageBox.Show(exception.Message, "Spark.Tag4D", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+            catch (Exception exception)
+            {
+                MessageBox.Show($"Error tagging elements: {exception.Message}", "Spark.Tag4D", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -174,14 +152,11 @@ namespace Spark.Tag4D.Microstation
         {
             try
             {
-                LoadDgnData();
-                ParametersSettingsView settingsView = new ParametersSettingsView();
-                settingsView.DataContext = new ParametersSettingsViewModel();
-                settingsView.Show();
+                new SettingsView { DataContext = new SettingsViewModel() }.Show();
             }
-            catch (Exception)
+            catch (Exception exception)
             {
-                MessageBox.Show($"Error showing settings. Please check the settings and excel files.", "Error");
+                MessageBox.Show($"Error showing settings: {exception.Message}", "Spark.Tag4D", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
     }

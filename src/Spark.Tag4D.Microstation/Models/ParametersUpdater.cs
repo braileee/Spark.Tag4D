@@ -1,4 +1,5 @@
 ﻿using Bentley.DgnPlatformNET.Elements;
+using Spark.Tag4D.Core.Expressions;
 using Spark.Tag4D.Core.Models;
 using Spark.Tag4D.Microstation.Extensions;
 using System;
@@ -9,7 +10,7 @@ namespace Spark.Tag4D.Microstation.Models
 {
     public class ParametersUpdater
     {
-        public ParametersUpdater(List<Element> elements, List<PropertyField> changeFields, List<PropertyField> allFields, List<ExpressionItem> expressionItems, List<ComposedPropertyItem> composedPropertyItems, List<PropertyValueMatch> propertyValueExactMatches)
+        public ParametersUpdater(List<Element> elements, List<PropertyField> changeFields, List<PropertyField> allFields, List<ExpressionRule> expressionItems, List<ComposedPropertyItem> composedPropertyItems, List<PropertyValueMatch> propertyValueExactMatches)
         {
             Elements = elements;
             ChangedFields = changeFields;
@@ -22,12 +23,15 @@ namespace Spark.Tag4D.Microstation.Models
         public List<Element> Elements { get; } = new List<Element>();
         public List<PropertyField> ChangedFields { get; } = new List<PropertyField>();
         public List<PropertyField> Fields { get; } = new List<PropertyField>();
-        public List<ExpressionItem> ExpressionItems { get; } = new List<ExpressionItem>();
+        public List<ExpressionRule> ExpressionItems { get; } = new List<ExpressionRule>();
 
         public List<ComposedPropertyItem> ComposedItems { get; set; } = new List<ComposedPropertyItem>();
         public List<PropertyValueMatch> PropertyValueExactMatches { get; } = new List<PropertyValueMatch>();
 
         public List<PropertyField> AdditionalChangedFields { get; set; } = new List<PropertyField>();
+
+        /// <summary>Descriptions of expression rules that failed during the last update.</summary>
+        public HashSet<string> InvalidExpressions { get; } = new HashSet<string>();
 
         public void Update()
         {
@@ -135,7 +139,7 @@ namespace Spark.Tag4D.Microstation.Models
                         continue;
                     }
 
-                    List<ExpressionItem> expressions = ExpressionItems.Where(item => item.SourcePropertyName == changedField.Name).ToList();
+                    List<ExpressionRule> expressions = ExpressionItems.Where(item => item.SourcePropertyName == changedField.Name).ToList();
 
                     foreach (var expression in expressions)
                     {
@@ -148,11 +152,18 @@ namespace Spark.Tag4D.Microstation.Models
 
                         object value = element.GetValue(changedField.Name);
 
-                        targetField.Value = ExpressionEvaluator.Evaluate(expression, value);
+                        if (!ExpressionEngine.TryEvaluate(value?.ToString(), expression.Function, out object result, out string error))
+                        {
+                            // A broken rule must not stop the remaining rules from being applied.
+                            InvalidExpressions.Add($"{expression.SourcePropertyName} -> {expression.TargetPropertyName}: {error}");
+                            continue;
+                        }
+
+                        targetField.Value = result;
                         targetField.CanBeEdited = false;
                         targetField.IsReadOnly = true;
 
-                        element.SetValue(targetField.Name, targetField.Value?.ToString());
+                        element.SetValue(targetField.Name, result?.ToString());
                     }
                 }
             }

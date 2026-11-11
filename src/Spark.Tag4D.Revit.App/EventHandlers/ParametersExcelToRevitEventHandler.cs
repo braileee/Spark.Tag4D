@@ -22,6 +22,7 @@ namespace Spark.Tag4D.Revit.App.EventHandlers
             }
             catch (Exception exception)
             {
+                TaskDialog.Show("Spark.Tag4D", $"Creating the project parameters failed: {exception.Message}");
             }
         }
     }

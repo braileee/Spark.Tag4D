@@ -18,7 +18,7 @@ namespace Spark.Tag4D.Microstation.ViewModels
 {
     public class ParametersTagElementsViewModel : ObservableObject
     {
-        public ParametersTagElementsViewModel(DgnFile dgnFile, SettingsRoot settingsRoot, List<PropertySetItem> propertySetItems, List<PicklistGroup> picklistGroups, List<LayerMappingItem> layerMappingItems, List<ExpressionItem> expressionItems, List<PropertyValueMatch> propertyValueMatches, List<Element> selectedElements, List<ComposedPropertyItem> composedPropertyItems, List<PropertyValueMatch> propertyValueExactMatches)
+        public ParametersTagElementsViewModel(DgnFile dgnFile, SettingsRoot settingsRoot, List<PropertySetItem> propertySetItems, List<PicklistGroup> picklistGroups, List<LayerMappingItem> layerMappingItems, List<ExpressionRule> expressionItems, List<PropertyValueMatch> propertyValueMatches, List<Element> selectedElements, List<ComposedPropertyItem> composedPropertyItems, List<PropertyValueMatch> propertyValueExactMatches)
         {
 
             CustomProperties = propertySetItems.SelectMany(item => item.PropertyItems).ToList();
@@ -51,6 +51,7 @@ namespace Spark.Tag4D.Microstation.ViewModels
             {
                 ParametersUpdater parametersUpdater = new ParametersUpdater(SelectedElements, Fields.ToList(), Fields.ToList(), ExpressionItems, ComposedItems, PropertyValueExactMatches);
                 parametersUpdater.UpdateComposedAndExpressionValues();
+                ReportInvalidExpressions(parametersUpdater);
 
                 OnUpdateSelectionCommand();
             }
@@ -256,6 +257,18 @@ namespace Spark.Tag4D.Microstation.ViewModels
             }
         }
 
+        private static void ReportInvalidExpressions(ParametersUpdater updater)
+        {
+            if (updater.InvalidExpressions.Count > 0)
+            {
+                MessageBox.Show(
+                    "Some expressions could not be evaluated:" + Environment.NewLine + string.Join(Environment.NewLine, updater.InvalidExpressions),
+                    "Spark.Tag4D",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+            }
+        }
+
         private void OnApplyCommand()
         {
             try
@@ -264,6 +277,7 @@ namespace Spark.Tag4D.Microstation.ViewModels
 
                 ParametersUpdater parametersUpdater = new ParametersUpdater(SelectedElements, changedFields, Fields.ToList(), ExpressionItems, ComposedItems, PropertyValueExactMatches);
                 parametersUpdater.Update();
+                ReportInvalidExpressions(parametersUpdater);
 
                 OnUpdateSelectionCommand();
             }
@@ -339,6 +353,6 @@ namespace Spark.Tag4D.Microstation.ViewModels
         public List<PropertySetItem> PropertySetItems { get; } = new List<PropertySetItem>();
         public List<PicklistGroup> PicklistGroups { get; } = new List<PicklistGroup>();
         public List<LayerMappingItem> LayerMappingItems { get; } = new List<LayerMappingItem>();
-        public List<ExpressionItem> ExpressionItems { get; } = new List<ExpressionItem>();
+        public List<ExpressionRule> ExpressionItems { get; } = new List<ExpressionRule>();
     }
 }

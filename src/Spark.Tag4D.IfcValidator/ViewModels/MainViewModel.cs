@@ -1,181 +1,201 @@
-﻿using ControlzEx.Standard;
+using System.Diagnostics;
+using System.Windows;
 using Spark.Tag4D.Core.Configuration;
 using Spark.Tag4D.Core.Models;
-using Spark.Tag4D.IfcValidator.Models;
-using Spark.Tag4D.IfcValidator.Utils;
 using Spark.Tag4D.Core.Mvvm;
-
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Forms;
+using Spark.Tag4D.IfcValidator.Models;
+using Spark.Tag4D.UI.Dialogs;
 
 namespace Spark.Tag4D.IfcValidator.ViewModels
 {
     public class MainViewModel : ObservableObject
     {
+        private readonly UserSettings _userSettings = UserSettings.Current;
+
+        private string _settingsFilePath;
+        private string _excelFilePath;
+        private string _ifcFolderPath;
+        private string _statusMessage = "Choose the files and press Validate.";
+        private bool _isBusy;
+
         public MainViewModel()
         {
-            var settingsRoot = SettingsLoader.LoadExistingOrDefault();
+            _settingsFilePath = SettingsLoader.GetPath();
 
-            ExcelDataLoader.LoadOrPromptExcelFilePath(settingsRoot.ExcelSettings.FileLinkSettings);
-
-            ExcelFilePath = ExcelDataLoader.GetPath();
-            IfcFolderPath = Properties.Settings.Default.IfcFolderPath;
-            SettingsFilePath = SettingsLoader.GetPath();
-
-            SelectExcelCommand = new RelayCommand(OnSelectExcelCommand);
-            SelectIfcFolderCommand = new RelayCommand(OnSelectIfcFolderCommand);
-            SelectSettingsCommand = new RelayCommand(OnSelectSettingsCommand);
-
-            ValidateCommand = new RelayCommand(OnValidateCommand);
-        }
-
-        private void OnSelectSettingsCommand()
-        {
-            string initDirectory = string.IsNullOrEmpty(SettingsFilePath) ? Environment.GetFolderPath(Environment.SpecialFolder.Desktop) : Path.GetDirectoryName(SettingsFilePath);
-
-            string settingsFilePath = FileUtils.GetFilePath(initDirectory, "JSON files (*.json)|*.json|All files (*.*)|*.*");
-            if (string.IsNullOrEmpty(settingsFilePath))
+            // Make sure a workbook path is resolved even on first start (falls back to the shipped default).
+            SettingsRoot settings = SettingsLoader.LoadExistingOrDefault();
+            if (settings != null)
             {
-                return;
+                ExcelDataLoader.LoadOrPromptExcelFilePath(settings.ExcelSettings.FileLinkSettings);
             }
-            SettingsFilePath = settingsFilePath;
+
+            _settingsFilePath = SettingsLoader.GetPath();
+            _excelFilePath = ExcelDataLoader.GetPath();
+            _ifcFolderPath = _userSettings.IfcFolderPath;
+
+            SelectSettingsCommand = new RelayCommand(SelectSettings);
+            SelectExcelCommand = new RelayCommand(SelectExcel);
+            SelectIfcFolderCommand = new RelayCommand(SelectIfcFolder);
+
+            ValidateCommand = new AsyncRelayCommand(ValidateAsync, CanValidate);
+            ValidateCommand.Failed += (_, exception) => Report($"Validation failed: {exception.Message}", MessageBoxImage.Error);
         }
 
-        private void OnValidateCommand()
+        public string SettingsFilePath
         {
-            try
+            get => _settingsFilePath;
+            set
             {
-                if (ExcelFilePath == null || IfcFolderPath == null)
+                if (SetProperty(ref _settingsFilePath, value))
                 {
-                    MessageBox.Show("Please select both the Excel file and the IFC folder before validating.", "Error");
-                    return;
+                    SettingsLoader.SavePath(value);
                 }
-
-                SettingsRoot settingsRoot = SettingsLoader.LoadExistingOrDefault();
-
-                if (settingsRoot == null || settingsRoot?.ExcelSettings == null)
-                {
-                    MessageBox.Show("Failed to load settings. Please check the settings file.", "Error");
-                    return;
-                }
-
-                List<PropertySetItem> propertySetItems = ExcelDataLoader.LoadPropertySetItems(ExcelFilePath, settingsRoot.ExcelSettings.PropertiesSheet);
-                List<PicklistGroup> picklistGroups = ExcelDataLoader.LoadPicklistGroups(excelFilePath, settingsRoot.ExcelSettings.PicklistSheet);
-                List<PropertyValueMatch> propertyValueMatches = ExcelDataLoader.LoadPropertiesValueMatches(excelFilePath, settingsRoot.ExcelSettings.PropertyMatchSheet);
-                List<ExpressionRule> expressions = ExcelDataLoader.LoadExpressions(excelFilePath, settingsRoot.ExcelSettings.ExpressionSheet);
-                List<LayerMappingItem> layerMappingItems = ExcelDataLoader.ReadLayerMappings(excelFilePath, settingsRoot.ExcelSettings.LayersMappingSheet);
-                List<ComposedPropertyItem> composedPropertyItems = ExcelDataLoader.LoadComposed(excelFilePath, settingsRoot.ExcelSettings.ComposedSheet);
-                List<PropertyValueMatch> exactPropertyValueMatches = ExcelDataLoader.LoadPropertiesExactValueMatches(excelFilePath, settingsRoot.ExcelSettings.PropertyExactMatchSheet);
-
-                List<string> ifcFilePaths = System.IO.Directory.GetFiles(IfcFolderPath, "*.ifc", System.IO.SearchOption.TopDirectoryOnly).ToList();
-
-                string reportFilePath = FileUtils.SaveFileToFolder(Environment.SpecialFolder.Desktop, ".xlsx");
-
-                if (string.IsNullOrEmpty(reportFilePath))
-                {
-                    return;
-                }
-
-                IfcFileDataCollector collector = new IfcFileDataCollector(ifcFilePaths);
-                List<IfcFile> ifcFiles = collector.CollectFromFiles();
-
-                ReportWriter reportWriter = new ReportWriter(ifcFiles, reportFilePath, propertySetItems, picklistGroups, propertyValueMatches, expressions, layerMappingItems, composedPropertyItems, exactPropertyValueMatches);
-                reportWriter.Create();
-
-                System.Diagnostics.Process.Start(
-                                    new ProcessStartInfo
-                                    {
-                                        FileName = reportFilePath,
-                                        UseShellExecute = true,
-                                        Verb = "open"
-                                    }
-                                    );
-            }
-            catch (Exception exception)
-            {
-                MessageBox.Show("Unexpected error");
             }
         }
-
-        private void OnSelectIfcFolderCommand()
-        {
-            string initDirectory = IfcFolderPath ?? Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-            string ifcFolderPath = FolderUtils.GetFolderPathExtendedWindow(initDirectory);
-
-            if (string.IsNullOrEmpty(ifcFolderPath))
-            {
-                return;
-            }
-
-            IfcFolderPath = ifcFolderPath;
-        }
-
-        private void OnSelectExcelCommand()
-        {
-            string initDirectory = string.IsNullOrEmpty(ExcelFilePath) ? Environment.GetFolderPath(Environment.SpecialFolder.Desktop) : Path.GetDirectoryName(ExcelFilePath);
-            string excelFilePath = FileUtils.GetFilePath(initDirectory, "Excel files (*.xlsx)|*.xlsx|All files (*.*)|*.*");
-
-            if (string.IsNullOrEmpty(excelFilePath))
-            {
-                return;
-            }
-
-            ExcelFilePath = excelFilePath;
-        }
-
-        private string excelFilePath;
 
         public string ExcelFilePath
         {
-            get { return excelFilePath; }
+            get => _excelFilePath;
             set
             {
-                excelFilePath = value;
-                Properties.Settings.Default.ExcelFilePath = excelFilePath;
-                Properties.Settings.Default.Save();
-                OnPropertyChanged();
+                if (SetProperty(ref _excelFilePath, value))
+                {
+                    ExcelDataLoader.SavePath(value);
+                    ValidateCommand?.RaiseCanExecuteChanged();
+                }
             }
         }
-
-        private string ifcFolderPath;
 
         public string IfcFolderPath
         {
-            get { return ifcFolderPath; }
+            get => _ifcFolderPath;
             set
             {
-                ifcFolderPath = value;
-                Properties.Settings.Default.IfcFolderPath = ifcFolderPath;
-                Properties.Settings.Default.Save();
-                OnPropertyChanged();
+                if (SetProperty(ref _ifcFolderPath, value))
+                {
+                    _userSettings.IfcFolderPath = value;
+                    _userSettings.Save();
+                    ValidateCommand?.RaiseCanExecuteChanged();
+                }
             }
         }
 
-        private string settingsFilePath;
-        public string SettingsFilePath
+        public string StatusMessage
         {
-            get
-            {
-                return settingsFilePath;
-            }
+            get => _statusMessage;
+            private set => SetProperty(ref _statusMessage, value);
+        }
 
-            set
+        public bool IsBusy
+        {
+            get => _isBusy;
+            private set => SetProperty(ref _isBusy, value);
+        }
+
+        public RelayCommand SelectSettingsCommand { get; }
+
+        public RelayCommand SelectExcelCommand { get; }
+
+        public RelayCommand SelectIfcFolderCommand { get; }
+
+        public AsyncRelayCommand ValidateCommand { get; }
+
+        private bool CanValidate() => File.Exists(ExcelFilePath ?? string.Empty) && Directory.Exists(IfcFolderPath ?? string.Empty);
+
+        private void SelectSettings()
+        {
+            string path = FileDialogs.OpenFile(FileDialogs.JsonFilter, DirectoryOf(SettingsFilePath));
+            if (!string.IsNullOrEmpty(path))
             {
-                settingsFilePath = value;
-                Properties.Settings.Default.SettingsFilePath = settingsFilePath;
-                Properties.Settings.Default.Save();
-                OnPropertyChanged();
+                SettingsFilePath = path;
             }
         }
-        public RelayCommand SelectExcelCommand { get; }
-        public RelayCommand SelectIfcFolderCommand { get; }
-        public RelayCommand SelectSettingsCommand { get; }
-        public RelayCommand ValidateCommand { get; }
+
+        private void SelectExcel()
+        {
+            string path = FileDialogs.OpenFile(FileDialogs.ExcelFilter, DirectoryOf(ExcelFilePath));
+            if (!string.IsNullOrEmpty(path))
+            {
+                ExcelFilePath = path;
+            }
+        }
+
+        private void SelectIfcFolder()
+        {
+            string path = FileDialogs.PickFolder(IfcFolderPath);
+            if (!string.IsNullOrEmpty(path))
+            {
+                IfcFolderPath = path;
+            }
+        }
+
+        private async Task ValidateAsync()
+        {
+            string reportFilePath = FileDialogs.SaveFile("Excel files (*.xlsx)|*.xlsx", "IfcValidationReport.xlsx");
+            if (string.IsNullOrEmpty(reportFilePath))
+            {
+                return;
+            }
+
+            string settingsPath = SettingsFilePath;
+            string excelPath = ExcelFilePath;
+            string ifcFolder = IfcFolderPath;
+
+            IsBusy = true;
+
+            try
+            {
+                StatusMessage = "Loading rules...";
+
+                // Heavy work (IFC parsing, report generation) runs off the UI thread.
+                string summary = await Task.Run(() =>
+                {
+                    SettingsRoot settings = string.IsNullOrEmpty(settingsPath) || !File.Exists(settingsPath)
+                        ? SettingsLoader.LoadExistingOrDefault()
+                        : SettingsLoader.Read(settingsPath);
+
+                    if (settings == null)
+                    {
+                        throw new TagDataException("No settings file found.");
+                    }
+
+                    TagData data = TagData.Load(settings, excelPath);
+
+                    string[] ifcFilePaths = Directory.GetFiles(ifcFolder, "*.ifc", SearchOption.TopDirectoryOnly);
+                    if (ifcFilePaths.Length == 0)
+                    {
+                        throw new TagDataException("The selected folder does not contain any .ifc files.");
+                    }
+
+                    List<IfcFile> ifcFiles = new IfcFileDataCollector(ifcFilePaths.ToList()).CollectFromFiles();
+                    new ReportWriter(data, ifcFiles, reportFilePath).Create();
+
+                    return $"Validated {ifcFilePaths.Length} IFC file(s). Report saved to {reportFilePath}";
+                });
+
+                StatusMessage = summary;
+
+                Process.Start(new ProcessStartInfo { FileName = reportFilePath, UseShellExecute = true });
+            }
+            catch (TagDataException exception)
+            {
+                Report(exception.Message, MessageBoxImage.Warning);
+            }
+            finally
+            {
+                IsBusy = false;
+            }
+        }
+
+        private void Report(string message, MessageBoxImage image)
+        {
+            StatusMessage = message;
+            MessageBox.Show(message, "IFC Validator", MessageBoxButton.OK, image);
+        }
+
+        private static string DirectoryOf(string filePath)
+        {
+            return string.IsNullOrEmpty(filePath) ? null : Path.GetDirectoryName(filePath);
+        }
     }
 }

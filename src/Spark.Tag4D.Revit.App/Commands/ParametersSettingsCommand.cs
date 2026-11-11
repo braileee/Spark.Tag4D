@@ -6,7 +6,6 @@ using Spark.Tag4D.Core.Models;
 using Spark.Tag4D.Settings.ViewModels;
 using Spark.Tag4D.Settings.Views;
 using Spark.Tag4D.Revit.App.Models;
-using Spark.Tag4D.Revit.App.Views;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -26,30 +25,13 @@ namespace Spark.Tag4D.Revit.App.Commands
         {
             try
             {
-               
-                SettingsRoot settingsRoot = SettingsLoader.LoadExistingOrDefault();
-                string excelFilePath = ExcelDataLoader.LoadOrPromptExcelFilePath(settingsRoot.ExcelSettings.FileLinkSettings);
-
-                if (string.IsNullOrEmpty(excelFilePath))
-                {
-                    MessageBox.Show($"No excel file selected", "Error");
-                    return Result.Failed;
-                }
-
-                if(settingsRoot == null)
-                {
-                    MessageBox.Show($"No settings file found", "Error");
-                    return Result.Failed;
-                }
-
-                SettingsView view = new SettingsView();
-                SettingsViewModel viewModel = new SettingsViewModel();
-                view.DataContext = viewModel;
+                var view = new SettingsView { DataContext = new SettingsViewModel() };
                 view.ShowDialog();
             }
-            catch (Exception ex)
+            catch (Exception exception)
             {
-                TaskDialog.Show("Error catched on showing start view", ex.Message);
+                TaskDialog.Show("Spark.Tag4D", $"The settings could not be opened: {exception.Message}");
+                return Result.Failed;
             }
 
             return Result.Succeeded;

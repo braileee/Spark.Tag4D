@@ -1,59 +1,17 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
-	<PropertyGroup>
-		<Configurations>DebugRevit2022;DebugRevit2023;DebugRevit2024;DebugRevit2025;DebugRevit2026;ReleaseRevit2022;ReleaseRevit2023;ReleaseRevit2024;ReleaseRevit2025;ReleaseRevit2026;DebugRevit2026</Configurations>
-		<OutputType>Library</OutputType>
-		<UseWPF>true</UseWPF>
-		<UseWindowsForms>true</UseWindowsForms>
-	</PropertyGroup>
+  <Import Project="..\..\build\Revit.props" />
 
-	<PropertyGroup Condition="'$(Configuration)'=='DebugRevit2024' Or '$(Configuration)'=='ReleaseRevit2024' Or '$(Configuration)'=='ReleaseRevit2023' Or '$(Configuration)'=='DebugRevit2023' Or '$(Configuration)'=='DebugRevit2022' Or '$(Configuration)'=='ReleaseRevit2022'">
-		<TargetFramework>net48</TargetFramework>
-	</PropertyGroup>
+  <!-- Revit API helpers (extensions, external-event wrapper, ribbon builder) shared by the Revit projects. -->
+  <PropertyGroup>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>Spark.Tag4D.Revit.Core</RootNamespace>
+    <AssemblyName>Spark.Tag4D.Revit.Core</AssemblyName>
+    <Nullable>disable</Nullable>
+  </PropertyGroup>
 
-	<PropertyGroup Condition="'$(Configuration)'=='DebugRevit2025' Or '$(Configuration)'=='ReleaseRevit2025' Or '$(Configuration)'=='DebugRevit2026' Or '$(Configuration)'=='ReleaseRevit2026'">
-		<TargetFramework>net8.0-windows</TargetFramework>
-	</PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Spark.Tag4D.Core\Spark.Tag4D.Core.csproj" />
+  </ItemGroup>
 
-	<ItemGroup Condition="'$(Configuration)'=='DebugRevit2026' Or '$(Configuration)'=='ReleaseRevit2026'">
-		<PackageReference Include="Revit_All_Main_Versions_API_x64" Version="2026.0.0">
-			<IncludeAssets>compile</IncludeAssets>
-			<PrivateAssets>all</PrivateAssets>
-		</PackageReference>
-		<PackageReference Include="Prism.Wpf" Version="8.1.97" />
-		<PackageReference Include="NPOI" Version="2.5.6" />
-	</ItemGroup>
-	
-	<ItemGroup Condition="'$(Configuration)'=='DebugRevit2025' Or '$(Configuration)'=='ReleaseRevit2025'">
-		<PackageReference Include="Revit_All_Main_Versions_API_x64" Version="2025.0.0">
-			<IncludeAssets>compile</IncludeAssets>
-			<PrivateAssets>all</PrivateAssets>
-		</PackageReference>
-		<PackageReference Include="Prism.Wpf" Version="8.1.97" />
-		<PackageReference Include="NPOI" Version="2.5.6" />
-	</ItemGroup>
-
-	<ItemGroup Condition="'$(Configuration)'=='DebugRevit2024' Or '$(Configuration)'=='ReleaseRevit2024'">
-		<PackageReference Include="Revit_All_Main_Versions_API_x64" Version="2024.2.0">
-			<IncludeAssets>compile</IncludeAssets>
-			<PrivateAssets>all</PrivateAssets>
-		</PackageReference>
-		<PackageReference Include="NPOI" Version="2.5.6" />
-	</ItemGroup>
-
-	<ItemGroup Condition="'$(Configuration)'=='DebugRevit2023' Or '$(Configuration)'=='ReleaseRevit2023'">
-		<PackageReference Include="Revit_All_Main_Versions_API_x64" Version="2023.0.0">
-			<IncludeAssets>compile</IncludeAssets>
-			<PrivateAssets>all</PrivateAssets>
-		</PackageReference>
-		<PackageReference Include="NPOI" Version="2.5.6" />
-	</ItemGroup>
-
-	<ItemGroup Condition="'$(Configuration)'=='DebugRevit2022' Or '$(Configuration)'=='ReleaseRevit2022'">
-		<PackageReference Include="Revit_All_Main_Versions_API_x64" Version="2022.1.0">
-			<IncludeAssets>compile</IncludeAssets>
-			<PrivateAssets>all</PrivateAssets>
-		</PackageReference>
-		<PackageReference Include="NPOI" Version="2.5.6" />
-	</ItemGroup>
 </Project>

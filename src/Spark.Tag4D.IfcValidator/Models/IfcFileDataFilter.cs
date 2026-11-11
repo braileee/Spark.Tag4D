@@ -1,11 +1,8 @@
-﻿using Spark.Tag4D.Core.Enums;
+﻿using Spark.Tag4D.Core.Expressions;
 using Spark.Tag4D.Core.Models;
-using NPOI.HPSF;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection.Metadata;
-using Xbim.Ifc2x3.MeasureResource;
 
 namespace Spark.Tag4D.IfcValidator.Models
 {
@@ -215,6 +212,10 @@ namespace Spark.Tag4D.IfcValidator.Models
             return picklistCheckFiles;
         }
 
+        /// <summary>
+        /// Finds target properties whose value contradicts the match tables: when every source value of a
+        /// match row is present on the element, the target property may only hold one of the allowed values.
+        /// </summary>
         public List<IfcFile> GetNonMatchData(List<IfcFile> ifcFiles, List<PropertyValueMatch> propertyValueMatches)
         {
             List<IfcFile> updatedFiles = new List<IfcFile>();
@@ -238,48 +239,42 @@ namespace Spark.Tag4D.IfcValidator.Models
                         Tag = ifcElement.Tag,
                     };
 
-                    foreach (IfcProperty ifcProperty in ifcElement.IfcProperties)
+                    Dictionary<string, string> valuesByName = new Dictionary<string, string>();
+                    foreach (IfcProperty property in ifcElement.IfcProperties)
                     {
-                        string assignedSourceValue = ifcProperty?.Value?.ToString();
+                        if (!valuesByName.ContainsKey(property.PropertyName))
+                        {
+                            valuesByName[property.PropertyName] = property.Value?.ToString();
+                        }
+                    }
 
-                        List<PropertyValueMatch> sourcePropertyValueMatches = propertyValueMatches.Where(item => item.PropertyNameSource == ifcProperty.PropertyName && item.PropertyValueSource == assignedSourceValue).ToList();
+                    foreach (IGrouping<string, PropertyValueMatch> targetGroup in propertyValueMatches.GroupBy(match => match.PropertyNameTarget))
+                    {
+                        List<PropertyValueMatch> applicable = targetGroup
+                            .Where(match => match.PropertyNameAndValuesSource.All(source =>
+                                valuesByName.TryGetValue(source.Key, out string value) && value == source.Value))
+                            .ToList();
 
-                        if (sourcePropertyValueMatches.Count == 0)
+                        if (applicable.Count == 0)
                         {
                             continue;
                         }
 
-                        PropertySetItem propertySetItem = PropertySetItems.FirstOrDefault(propertySetItem => propertySetItem.PropertySetName == ifcProperty.PropertySetName);
-
-                        if (propertySetItem == null)
+                        IfcProperty targetProperty = ifcElement.IfcProperties.FirstOrDefault(item => item.PropertyName == targetGroup.Key);
+                        if (targetProperty == null)
                         {
                             continue;
                         }
 
-                        PropertyItem propertyItem = propertySetItem.PropertyItems.FirstOrDefault(item => item.PropertyName == ifcProperty.PropertyName);
-
-                        if (propertyItem == null)
+                        string targetValue = targetProperty.Value?.ToString();
+                        if (!applicable.Any(match => match.PropertyValueTarget == targetValue))
                         {
-                            continue;
-                        }
-
-
-                        IfcProperty ifcPropertyTarget = ifcElement.IfcProperties.FirstOrDefault(item => item.PropertyName == sourcePropertyValueMatches[0].PropertyNameTarget);
-                        string assignedTargetProperty = ifcPropertyTarget?.Value?.ToString();
-
-                        IfcProperty ifcPropertyUpdated = new IfcProperty
-                        {
-                            PropertyName = ifcPropertyTarget.PropertyName,
-                            PropertySetName = ifcPropertyTarget.PropertySetName,
-                            Value = ifcPropertyTarget.Value,
-                        };
-
-                        List<string> sourceValues = sourcePropertyValueMatches.Select(item => item.PropertyValueSource).ToList();
-                        List<string> targetValues = sourcePropertyValueMatches.Select(item => item.PropertyValueTarget).ToList();
-
-                        if (!targetValues.Contains(assignedTargetProperty))
-                        {
-                            ifcElementUpdated.IfcProperties.Add(ifcPropertyUpdated);
+                            ifcElementUpdated.IfcProperties.Add(new IfcProperty
+                            {
+                                PropertyName = targetProperty.PropertyName,
+                                PropertySetName = targetProperty.PropertySetName,
+                                Value = targetProperty.Value,
+                            });
                         }
                     }
 
@@ -337,10 +332,12 @@ namespace Spark.Tag4D.IfcValidator.Models
 
                             string targetValue = targetProperty?.Value?.ToString();
 
-                            object evaluatedValue = ExpressionEvaluator.Evaluate(expression, sourceProperty?.Value);
-                            string evaluatedValueString = evaluatedValue?.ToString();
+                            // A rule that cannot be evaluated counts as a finding: the target cannot be proven correct.
+                            string evaluatedValueString = ExpressionEngine.TryEvaluate(assignedSourceValue, expression.Function, out object evaluatedValue, out _)
+                                ? evaluatedValue?.ToString()
+                                : null;
 
-                            if (targetValue != evaluatedValueString)
+                            if (!string.Equals(targetValue, evaluatedValueString, StringComparison.OrdinalIgnoreCase))
                             {
                                 ifcElementUpdated.IfcProperties.Add(sourceProperty);
                                 ifcElementUpdated.IfcProperties.Add(targetProperty);

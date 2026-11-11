@@ -2,8 +2,6 @@
 using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
 using Spark.Tag4D.Core;
-using Spark.Tag4D.Core.Configuration;
-using Spark.Tag4D.Core.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -19,45 +17,22 @@ namespace Spark.Tag4D.Revit.App.Commands
         {
             try
             {
-                SettingsRoot settingsRoot = SettingsLoader.LoadExistingOrDefault();
-
-                // load excel data
-                string excelFilePath = ExcelDataLoader.LoadOrPromptExcelFilePath(settingsRoot.ExcelSettings.FileLinkSettings);
-
-                if (string.IsNullOrEmpty(excelFilePath))
-                {
-                    MessageBox.Show($"No excel file selected", "Error");
-                    return Result.Cancelled;
-                }
-
-                if(settingsRoot == null)
-                {
-                    MessageBox.Show($"No settings file found", "Error");
-                    return Result.Cancelled;
-                }
-
-                List<PropertySetItem> propertySetItems = ExcelDataLoader.LoadPropertySetItems(excelFilePath, settingsRoot.ExcelSettings.PropertiesSheet);
-                List<PicklistGroup> picklistGroups = ExcelDataLoader.LoadPicklistGroups(excelFilePath, settingsRoot.ExcelSettings.PicklistSheet);
-
-                Dictionary<string, List<string>> propertiesWithValues = picklistGroups.ToDictionary(item => item.GroupName, item => item.Values);
-
-                List<PropertyItem> properties = propertySetItems.SelectMany(item => item.PropertyItems).ToList();
-
                 DockablePaneId id = new DockablePaneId(new Guid(Constants.ParametersTagElementsPaneId));
-                DockablePane dockableWindow = commandData.Application.GetDockablePane(id);
+                DockablePane pane = commandData.Application.GetDockablePane(id);
 
-                if (dockableWindow.IsShown())
+                if (pane.IsShown())
                 {
-                    dockableWindow.Hide();
+                    pane.Hide();
                 }
                 else
                 {
-                    dockableWindow.Show();
+                    pane.Show();
                 }
             }
-            catch (Exception ex)
+            catch (Exception exception)
             {
-                TaskDialog.Show("Error catched", ex.Message);
+                TaskDialog.Show("Spark.Tag4D", $"The tagging pane could not be toggled: {exception.Message}");
+                return Result.Failed;
             }
 
             return Result.Succeeded;

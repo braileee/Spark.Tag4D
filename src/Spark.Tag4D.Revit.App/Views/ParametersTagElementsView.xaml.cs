@@ -16,7 +16,6 @@ namespace Spark.Tag4D.Revit.App.Views
 
         public void Dispose()
         {
-            this.Dispose();
         }
 
         public void SetupDockablePane(DockablePaneProviderData data)

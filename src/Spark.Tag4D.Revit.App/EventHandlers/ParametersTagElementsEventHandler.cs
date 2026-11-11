@@ -1,5 +1,6 @@
 ﻿using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
+using Spark.Tag4D.Core.Expressions;
 using Spark.Tag4D.Core.Models;
 using Spark.Tag4D.Revit.Core;
 using Spark.Tag4D.Revit.Core.Models;
@@ -76,6 +77,7 @@ namespace Spark.Tag4D.Revit.App.EventHandlers
             }
             catch (Exception exception)
             {
+                TaskDialog.Show("Spark.Tag4D", $"Updating the elements failed: {exception.Message}");
             }
         }
 
@@ -148,6 +150,7 @@ namespace Spark.Tag4D.Revit.App.EventHandlers
 
         private void ApplyExpressions(ParametersTagElementsOptions options)
         {
+            var invalidRules = new HashSet<string>();
             List<string> sourceParameterNames = options.Expressions.Select(item => item.SourcePropertyName).Distinct().ToList();
 
             foreach (PropertyField changedField in options.ChangedFields)
@@ -170,26 +173,28 @@ namespace Spark.Tag4D.Revit.App.EventHandlers
                             continue;
                         }
 
-                        try
+                        object value = element.LookupParameter(changedField.Name)?.GetValueAsObject();
+
+                        if (!ExpressionEngine.TryEvaluate(value?.ToString(), expression.Function, out object result, out string error))
                         {
-                            object value = element.LookupParameter(changedField.Name)?.GetValueAsObject();
-
-                            targetField.Value = ExpressionEvaluator.Evaluate(value.ToString(), expression.Function);
-                            targetField.CanBeEdited = false;
-                            targetField.IsReadOnly = true;
-
-                            Parameter parameter = element.LookupParameter(targetField.Name);
-
-                            if (parameter != null)
-                            {
-                                parameter.TryParseAndSet(targetField.Value.ToString());
-                            }
+                            // A broken rule must not stop the remaining rules from being applied.
+                            invalidRules.Add($"{expression.SourcePropertyName} -> {expression.TargetPropertyName}: {error}");
+                            continue;
                         }
-                        catch (Exception ex)
-                        {
-                        }
+
+                        targetField.Value = result;
+                        targetField.CanBeEdited = false;
+                        targetField.IsReadOnly = true;
+
+                        Parameter parameter = element.LookupParameter(targetField.Name);
+                        parameter?.TryParseAndSet(result?.ToString());
                     }
                 }
+            }
+
+            if (invalidRules.Count > 0)
+            {
+                TaskDialog.Show("Spark.Tag4D", "Some expressions could not be evaluated:\n" + string.Join("\n", invalidRules));
             }
         }
     }

@@ -1,239 +1,110 @@
-﻿using Spark.Tag4D.Core.Configuration;
-using Spark.Tag4D.Core.Models;
-using Spark.Tag4D.Core.Utils;
-using Spark.Tag4D.Settings.Models;
-using NPOI.SS.UserModel;
-using NPOI.XSSF.UserModel;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Spark.Tag4D.Core.Configuration;
+using Spark.Tag4D.Core.Models;
+using Spark.Tag4D.Core.Spreadsheets;
+using Spark.Tag4D.Settings.Models;
 
 namespace Spark.Tag4D.Settings.Services
 {
-    public class ExactMatchExcelService 
+    /// <summary>Reads and writes the "&lt;name&gt; Exact Match" sheets: two columns, source value to target value.</summary>
+    public class ExactMatchExcelService
     {
         private const string ExactMatchSuffix = " Exact Match";
 
         public List<ExactMatchTable> Load(string filePath, SettingsRoot settingsRoot)
         {
             List<string> columnNames = ExcelDataLoader.GetPropertyNames(filePath, settingsRoot.ExcelSettings.PropertiesSheet);
+            Workbook workbook = Workbook.Open(filePath);
 
             var tables = new List<ExactMatchTable>();
 
-            using var stream = File.Open(
-                filePath,
-                FileMode.Open,
-                FileAccess.Read,
-                FileShare.ReadWrite);
-
-            IWorkbook workbook = new XSSFWorkbook(stream);
-
-            for (int i = 0; i < workbook.NumberOfSheets; i++)
+            foreach (Worksheet sheet in workbook.Sheets.Where(IsExactMatchSheet))
             {
-                var sheet = workbook.GetSheetAt(i);
-
-                if (!sheet.SheetName.EndsWith(
-                        ExactMatchSuffix,
-                        StringComparison.OrdinalIgnoreCase))
-                {
-                    continue;
-                }
-
-                var headerRow = sheet.GetRow(0);
+                string sourceHeader = sheet.GetText(0, 0);
+                string targetHeader = sheet.GetText(0, 1);
 
                 var table = new ExactMatchTable
                 {
-                    SheetPrefix =
-                    sheet.SheetName.Substring(
-                        0,
-                        sheet.SheetName.Length -
-                        ExactMatchSuffix.Length),
-
-                    SourceColumnHeader = columnNames.FirstOrDefault(item => item ==  headerRow?.GetCell(0)?.ToString()),
-                    TargetColumnHeader = columnNames.FirstOrDefault(item => item == headerRow?.GetCell(1)?.ToString()),
-                    AvailableColumnNames = columnNames
+                    SheetPrefix = sheet.Name.Substring(0, sheet.Name.Length - ExactMatchSuffix.Length),
+                    AvailableColumnNames = columnNames,
+                    SourceColumnHeader = string.IsNullOrEmpty(sourceHeader) ? "Source" : sourceHeader,
+                    TargetColumnHeader = string.IsNullOrEmpty(targetHeader) ? "Target" : targetHeader
                 };
 
-
-                table.SourceColumnHeader =
-                    headerRow?.GetCell(0)?.ToString()
-                    ?? "Source";
-
-                table.TargetColumnHeader =
-                    headerRow?.GetCell(1)?.ToString()
-                    ?? "Target";
-
-                int rowIndex = 1;
-
-                while (true)
+                // Data rows run until the first completely empty row.
+                for (int row = 1; row < sheet.RowCount && !sheet.IsRowEmpty(row); row++)
                 {
-                    var row = sheet.GetRow(rowIndex);
-
-                    if (row == null)
-                    {
-                        break;
-                    }
-
-                    string source =
-                        row.GetCell(0)?.ToString()?.Trim()
-                        ?? string.Empty;
-
-                    string target =
-                        row.GetCell(1)?.ToString()?.Trim()
-                        ?? string.Empty;
-
-                    if (string.IsNullOrWhiteSpace(source)
-                        && string.IsNullOrWhiteSpace(target))
-                    {
-                        break;
-                    }
-
                     table.Rows.Add(new ExactMatchRow
                     {
-                        Source = source,
-                        Target = target
+                        Source = sheet.GetText(row, 0).Trim(),
+                        Target = sheet.GetText(row, 1).Trim()
                     });
-
-                    rowIndex++;
                 }
 
                 Validate(table);
-
                 tables.Add(table);
             }
 
             return tables;
         }
 
-        public void Save(
-            string filePath,
-            IEnumerable<ExactMatchTable> tables)
+        public void Save(string filePath, IEnumerable<ExactMatchTable> tables)
         {
-            XSSFWorkbook workbook = XSSFWorkbookUtils.OpenExcelFile(filePath, FileAccess.ReadWrite);
+            Workbook workbook = Workbook.Open(filePath);
+            List<ExactMatchTable> tableList = tables.ToList();
 
-            var tableList = tables.ToList();
+            // Validate everything first so an invalid table cannot leave a half-written workbook behind.
+            tableList.ForEach(Validate);
 
-            RemoveDeletedExactMatchSheets(
-                workbook,
-                tableList);
+            var validNames = new HashSet<string>(
+                tableList.Select(t => t.SheetPrefix + ExactMatchSuffix),
+                StringComparer.OrdinalIgnoreCase);
 
-            foreach (var table in tableList)
+            foreach (string stale in workbook.Sheets.Where(IsExactMatchSheet).Select(s => s.Name).Where(n => !validNames.Contains(n)).ToList())
             {
-                Validate(table);
+                workbook.RemoveSheet(stale);
+            }
 
-                string sheetName = $"{table.SheetPrefix}{ExactMatchSuffix}";
+            foreach (ExactMatchTable table in tableList)
+            {
+                string sheetName = table.SheetPrefix + ExactMatchSuffix;
+                Worksheet sheet = workbook.FindSheet(sheetName) ?? workbook.AddSheet(sheetName);
+                sheet.Clear();
 
-                ISheet? sheet =
-                    workbook.GetSheet(sheetName);
-
-                if (sheet == null)
-                {
-                    sheet = workbook.CreateSheet(sheetName);
-                }
-                else
-                {
-                    ClearSheet(sheet);
-                }
-
-                var headerRow = sheet.CreateRow(0);
-
-                headerRow.CreateCell(0)
-                    .SetCellValue(
-                        table.SourceColumnHeader);
-
-                headerRow.CreateCell(1)
-                    .SetCellValue(
-                        table.TargetColumnHeader);
+                sheet.SetRow(0, new object[] { table.SourceColumnHeader, table.TargetColumnHeader });
 
                 int rowIndex = 1;
-
-                foreach (var item in table.Rows)
+                foreach (ExactMatchRow row in table.Rows)
                 {
-                    var row =
-                        sheet.CreateRow(rowIndex++);
-
-                    row.CreateCell(0)
-                        .SetCellValue(item.Source);
-
-                    row.CreateCell(1)
-                        .SetCellValue(item.Target);
+                    sheet.SetRow(rowIndex++, new object[] { row.Source, row.Target });
                 }
 
-                sheet.AutoSizeColumn(0);
-                sheet.AutoSizeColumn(1);
+                sheet.AutoSizeColumns(2);
             }
 
-            XSSFWorkbookUtils.WriteAndClose(workbook, filePath);
+            workbook.Save(filePath);
         }
 
-        private static void ClearSheet(ISheet sheet)
+        private static bool IsExactMatchSheet(Worksheet sheet)
         {
-            for (int i = sheet.LastRowNum; i >= 0; i--)
-            {
-                var row = sheet.GetRow(i);
-
-                if (row != null)
-                {
-                    sheet.RemoveRow(row);
-                }
-            }
+            return sheet.Name.EndsWith(ExactMatchSuffix, StringComparison.OrdinalIgnoreCase);
         }
 
-        private static void RemoveDeletedExactMatchSheets(
-            IWorkbook workbook,
-            IEnumerable<ExactMatchTable> tables)
+        private static void Validate(ExactMatchTable table)
         {
-            var validSheetNames =
-                tables
-                    .Select(t =>
-    $"{t.SheetPrefix}{ExactMatchSuffix}")
-                    .ToHashSet(
-                        StringComparer.OrdinalIgnoreCase);
+            List<string> duplicates = table.Rows
+                .Where(row => !string.IsNullOrWhiteSpace(row.Source))
+                .GroupBy(row => row.Source)
+                .Where(group => group.Count() > 1)
+                .Select(group => group.Key)
+                .ToList();
 
-            for (int i = workbook.NumberOfSheets - 1;
-                 i >= 0;
-                 i--)
-            {
-                var sheet =
-                    workbook.GetSheetAt(i);
-
-                if (!sheet.SheetName.EndsWith(
-                        ExactMatchSuffix,
-                        StringComparison.OrdinalIgnoreCase))
-                {
-                    continue;
-                }
-
-                if (!validSheetNames.Contains(
-                        sheet.SheetName))
-                {
-                    workbook.RemoveSheetAt(i);
-                }
-            }
-        }
-
-        private static void Validate(
-            ExactMatchTable table)
-        {
-            var duplicates =
-                table.Rows
-                    .Where(x =>
-                        !string.IsNullOrWhiteSpace(
-                            x.Source))
-                    .GroupBy(x => x.Source)
-                    .Where(g => g.Count() > 1)
-                    .Select(g => g.Key)
-                    .ToList();
-
-            if (duplicates.Any())
+            if (duplicates.Count > 0)
             {
                 throw new InvalidOperationException(
-                    $"Table '{table.Name}' contains duplicate Source values: " +
-                    string.Join(", ", duplicates));
+                    $"Table '{table.Name}' contains duplicate Source values: {string.Join(", ", duplicates)}");
             }
         }
     }

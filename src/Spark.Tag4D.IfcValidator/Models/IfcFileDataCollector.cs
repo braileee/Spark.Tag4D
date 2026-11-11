@@ -1,17 +1,13 @@
 ﻿
 using Spark.Tag4D.IfcValidator.Utils;
-using Microsoft.Isam.Esent.Interop;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Xbim.Common.Geometry;
 using Xbim.Ifc;
-using Xbim.Ifc2x3.GeometryResource;
 using Xbim.Ifc4.Interfaces;
-using Xbim.IO.Xml.BsConf;
 
 namespace Spark.Tag4D.IfcValidator.Models
 {

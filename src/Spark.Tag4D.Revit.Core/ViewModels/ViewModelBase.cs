@@ -1,41 +1,21 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
+using Spark.Tag4D.Core.Mvvm;
 
 namespace Spark.Tag4D.Revit.Core.ViewModels
 {
-    public class ViewModelBase : INotifyPropertyChanged
+    /// <summary>View-model base that adds window-level requests (close/hide/topmost) to <see cref="ObservableObject"/>.</summary>
+    public class ViewModelBase : ObservableObject
     {
-        public event PropertyChangedEventHandler PropertyChanged;
-
-        protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        }
-
-        protected void RaiseCloseRequest()
-        {
-            OnRequestClose?.Invoke(this, EventArgs.Empty);
-        }
-
         public event EventHandler OnRequestClose;
-
-        protected void RaiseHideRequest()
-        {
-            OnRequestHide?.Invoke(this, EventArgs.Empty);
-        }
 
         public event EventHandler OnRequestHide;
 
-        protected void RaiseTopmost()
-        {
-            OnRequestTopmost?.Invoke(this, EventArgs.Empty);
-        }
-
         public event EventHandler OnRequestTopmost;
+
+        protected void RaiseCloseRequest() => OnRequestClose?.Invoke(this, EventArgs.Empty);
+
+        protected void RaiseHideRequest() => OnRequestHide?.Invoke(this, EventArgs.Empty);
+
+        protected void RaiseTopmost() => OnRequestTopmost?.Invoke(this, EventArgs.Empty);
     }
 }

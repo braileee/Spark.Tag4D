@@ -7,7 +7,7 @@
              xmlns:models="clr-namespace:Spark.Tag4D.Revit.App.Models"
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="800"
-             Background="White">
+             >
 
     <Page.Resources><ResourceDictionary>
 <ResourceDictionary.MergedDictionaries>
@@ -53,39 +53,50 @@
                 ComboTemplate="{StaticResource ComboTemplate}" />
     </ResourceDictionary></Page.Resources>
 
-    <StackPanel>
-        <Label Content="{Binding SelectedElementsInfo}" Margin="2"/>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
 
-        <ScrollViewer>
+        <!-- Header -->
+        <Border Grid.Row="0" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="0,0,0,1" Padding="16,12">
+            <StackPanel>
+                <TextBlock Style="{StaticResource SectionText}" Text="Tag elements"/>
+                <TextBlock Style="{StaticResource MutedText}" Margin="0,2,0,0" Text="{Binding SelectedElementsInfo}"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Properties -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="16,8">
             <ItemsControl ItemsSource="{Binding Fields}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <Grid Margin="4">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="200"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Text="{Binding Name}" VerticalAlignment="Center"/>
-                            <ContentControl Grid.Column="1" 
-                                        Content="{Binding}" 
-                                        ContentTemplateSelector="{StaticResource EditorSelector}"/>
-                        </Grid>
+                        <StackPanel Margin="0,6">
+                            <TextBlock Style="{StaticResource MutedText}" FontWeight="SemiBold" Margin="0,0,0,4" Text="{Binding Name}"/>
+                            <ContentControl Content="{Binding}" ContentTemplateSelector="{StaticResource EditorSelector}"/>
+                        </StackPanel>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
         </ScrollViewer>
 
-        <StackPanel Orientation="Horizontal">
-            <Button Content="Apply" 
-                Command="{Binding ApplyCommand}" 
-                Margin="4" 
-                HorizontalAlignment="Left" Width="100"/>
-
-            <Button Content="Update Values" 
-            Command="{Binding UpdateValuesCommand}" 
-            Margin="4" 
-            HorizontalAlignment="Left" Width="150"/>
-
-        </StackPanel>
-    </StackPanel>
+        <!-- Actions -->
+        <Border Grid.Row="2" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="0,1,0,0" Padding="16,12">
+            <StackPanel>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="8"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Button Grid.Column="0" Style="{StaticResource PrimaryButton}" Content="Apply" Command="{Binding ApplyCommand}"/>
+                    <Button Grid.Column="2" Content="Update Values" Command="{Binding UpdateValuesCommand}"/>
+                </Grid>
+            </StackPanel>
+        </Border>
+    </Grid>
 </Page>

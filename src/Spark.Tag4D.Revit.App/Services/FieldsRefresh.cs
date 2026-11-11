@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using static NPOI.HSSF.UserModel.HeaderFooter;
 
 namespace Spark.Tag4D.Revit.App.Services
 {

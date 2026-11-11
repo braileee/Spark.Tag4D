@@ -2,9 +2,7 @@
 using Autodesk.Revit.DB.ExtensibleStorage;
 using Autodesk.Revit.UI;
 using Autodesk.Revit.UI.Events;
-using Spark.Tag4D.Core.Configuration;
 using Spark.Tag4D.Core.Models;
-using NPOI.Util.Collections;
 using Spark.Tag4D.Core.Mvvm;
 
 using Spark.Tag4D.Revit.Core;
@@ -21,7 +19,6 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Xml.Linq;
-using static NPOI.HSSF.UserModel.HeaderFooter;
 
 namespace Spark.Tag4D.Revit.App.ViewModels
 {
@@ -33,28 +30,24 @@ namespace Spark.Tag4D.Revit.App.ViewModels
         {
             Uiapp = uiapp;
 
-            // Load settings
-            SettingsRoot settingsRoot = SettingsLoader.LoadExistingOrDefault();
+            TagData data;
 
-            if (settingsRoot == null)
+            try
             {
-                MessageBox.Show($"No settings file found", "Error");
+                data = TagData.Load();
+            }
+            catch (TagDataException exception)
+            {
+                MessageBox.Show(exception.Message, "Spark.Tag4D", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
-            string excelFilePath = ExcelDataLoader.LoadOrPromptExcelFilePath(settingsRoot.ExcelSettings.FileLinkSettings);
-
-            List<PropertySetItem> propertySetItems = ExcelDataLoader.LoadPropertySetItems(excelFilePath, settingsRoot.ExcelSettings.PropertiesSheet);
-            List<PicklistGroup> picklistGroups = ExcelDataLoader.LoadPicklistGroups(excelFilePath, settingsRoot.ExcelSettings.PicklistSheet);
-            PropertyValueMatches = ExcelDataLoader.LoadPropertiesValueMatches(excelFilePath, settingsRoot.ExcelSettings.PropertyMatchSheet);
-            Expressions = ExcelDataLoader.LoadExpressions(excelFilePath, settingsRoot.ExcelSettings.ExpressionSheet);
-            ComposedItems = ExcelDataLoader.LoadComposed(excelFilePath, settingsRoot.ExcelSettings.ComposedSheet);
-            PropertyValueExactMatches = ExcelDataLoader.LoadPropertiesExactValueMatches(excelFilePath, settingsRoot.ExcelSettings.PropertyExactMatchSheet);
-
-            CustomProperties = propertySetItems.SelectMany(item => item.PropertyItems).ToList();
-            Dictionary<string, List<string>> propertiesWithValues = picklistGroups.ToDictionary(item => item.GroupName, item => item.Values);
-
-            PropertiesWithValues = propertiesWithValues;
+            PropertyValueMatches = data.Matches;
+            Expressions = data.Expressions;
+            ComposedItems = data.Composed;
+            PropertyValueExactMatches = data.ExactMatches;
+            CustomProperties = data.Properties;
+            PropertiesWithValues = data.PicklistsByProperty;
 
             LoadFields();
 
@@ -206,12 +199,12 @@ namespace Spark.Tag4D.Revit.App.ViewModels
         }
 
         public UIApplication Uiapp { get; }
-        public List<PropertyValueMatch> PropertyValueMatches { get; } = new List<PropertyValueMatch>();
+        public List<PropertyValueMatch> PropertyValueMatches { get; private set; } = new List<PropertyValueMatch>();
         public List<ExpressionRule> Expressions { get; private set; } = new List<ExpressionRule>();
-        public List<ComposedPropertyItem> ComposedItems { get; } = new List<ComposedPropertyItem>();
-        public List<PropertyValueMatch> PropertyValueExactMatches { get; } = new List<PropertyValueMatch>();
-        public List<PropertyItem> CustomProperties { get; } = new List<PropertyItem>();
-        public Dictionary<string, List<string>> PropertiesWithValues { get; } = new Dictionary<string, List<string>>();
+        public List<ComposedPropertyItem> ComposedItems { get; private set; } = new List<ComposedPropertyItem>();
+        public List<PropertyValueMatch> PropertyValueExactMatches { get; private set; } = new List<PropertyValueMatch>();
+        public List<PropertyItem> CustomProperties { get; private set; } = new List<PropertyItem>();
+        public Dictionary<string, List<string>> PropertiesWithValues { get; private set; } = new Dictionary<string, List<string>>();
         public ObservableCollection<PropertyField> Fields
         {
             get

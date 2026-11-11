@@ -9,12 +9,11 @@ using Spark.Tag4D.Revit.App.ViewModels;
 using Spark.Tag4D.Revit.App.Views;
 using System;
 using System.IO;
-using System.Linq;
 
 namespace Spark.Tag4D.Revit
 {
     [Transaction(TransactionMode.Manual)]
-    public class App : IExternalApplication
+    public class Tag4DApplication : IExternalApplication
     {
         public ParametersTagElementsView ParametersTagElementsView { get; private set; }
         public DockablePaneId IfcTagElementsPaneId { get; private set; }
@@ -36,27 +35,17 @@ namespace Spark.Tag4D.Revit
 
                 application.ViewActivated -= ApplicationViewActivated;
                 application.ViewActivated += ApplicationViewActivated;
-                string assemblyFolder = AssemblyUtils.GetFolder(typeof(App));
+                string assemblyFolder = AssemblyUtils.GetFolder(typeof(Tag4DApplication));
+                string commandsAssemblyPath = typeof(ParametersSettingsCommand).Assembly.Location;
 
-                string[] assemblyFilePathList = Directory.GetFiles(assemblyFolder, "*.dll", SearchOption.TopDirectoryOnly);
-
-                //Ifc manager
-                string ifcManagerDllPath = assemblyFilePathList.FirstOrDefault(x => x.Contains($"{nameof(Spark.Tag4D.Revit.App)}.dll"));
-                string ifcManagerSettingsImagePath = Path.Combine(assemblyFolder, "Resources", "Settings_32.png");
-                PushButton ifcManagerSettingsButton = ribbon.AddLargeButton(panelIfc, ifcManagerDllPath, "Settings", typeof(ParametersSettingsCommand), "Settings", ifcManagerSettingsImagePath);
-
-                string ifcManagerExcelToRevitImagePath = Path.Combine(assemblyFolder, "Resources", "ExcelToRevit_32.png");
-                PushButton ifcManagerExcelToRevitButton = ribbon.AddLargeButton(panelIfc, ifcManagerDllPath, "Parameters From Excel", typeof(ParametersExcelToRevitCommand), "Parameters From Excel", ifcManagerExcelToRevitImagePath);
-
-                string generateIfcMappingImagePath = Path.Combine(assemblyFolder, "Resources", "GenerateIfcMapping_32.png");
-                PushButton generateIfcMappingButton = ribbon.AddLargeButton(panelIfc, ifcManagerDllPath, "Generate Mapping File", typeof(GenerateIfcMappingCommand), "Generate Mapping File", generateIfcMappingImagePath);
-
-                string tagElementsImagePath = Path.Combine(assemblyFolder, "Resources", "ParametersTagElements_32.png");
-                PushButton tagElementsButton = ribbon.AddLargeButton(panelIfc, ifcManagerDllPath, "Tag Elements", typeof(ParametersTagElementsCommand), "Tag Elements", tagElementsImagePath);
+                AddButton(ribbon, panelIfc, commandsAssemblyPath, assemblyFolder, "Settings", typeof(ParametersSettingsCommand), "Settings_32.png");
+                AddButton(ribbon, panelIfc, commandsAssemblyPath, assemblyFolder, "Parameters From Excel", typeof(ParametersExcelToRevitCommand), "ExcelToRevit_32.png");
+                AddButton(ribbon, panelIfc, commandsAssemblyPath, assemblyFolder, "Generate Mapping File", typeof(GenerateIfcMappingCommand), "GenerateIfcMapping_32.png");
+                AddButton(ribbon, panelIfc, commandsAssemblyPath, assemblyFolder, "Tag Elements", typeof(ParametersTagElementsCommand), "ParametersTagElements_32.png");
             }
             catch (Exception exception)
             {
-                TaskDialog.Show("Error", $"Error catched on startup {exception.Message}");
+                TaskDialog.Show("Spark.Tag4D", $"Spark.Tag4D failed to start: {exception.Message}");
                 return Result.Failed;
             }
 
@@ -66,6 +55,12 @@ namespace Spark.Tag4D.Revit
         public Result OnShutdown(UIControlledApplication application)
         {
             return Result.Succeeded;
+        }
+
+        private static void AddButton(Ribbon ribbon, RibbonPanel panel, string assemblyPath, string assemblyFolder, string title, Type commandType, string imageFileName)
+        {
+            string imagePath = Path.Combine(assemblyFolder, "Resources", imageFileName);
+            ribbon.AddLargeButton(panel, assemblyPath, title, commandType, title, imagePath);
         }
 
         private void ApplicationViewActivated(object sender, ViewActivatedEventArgs e)

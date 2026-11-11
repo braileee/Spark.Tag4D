@@ -1,35 +1,79 @@
-﻿<Window x:Class="Spark.Tag4D.IfcValidator.Views.MainView"
+<Window x:Class="Spark.Tag4D.IfcValidator.Views.MainView"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:Spark.Tag4D.IfcValidator"
-        xmlns:mah="http://metro.mahapps.com/winfx/xaml/controls"
         mc:Ignorable="d"
-        Title="IFC Validator" 
-        SizeToContent="WidthAndHeight">
-    <StackPanel>
-        <Label Content="Select settings file"/>
-        <StackPanel Orientation="Horizontal" Margin="2">
-            <TextBox IsReadOnly="True" Text="{Binding SettingsFilePath, UpdateSourceTrigger=PropertyChanged}" Width="300" Margin="0 0 2 0"/>
-            <Button Content="Browse" Command="{Binding SelectSettingsCommand}" Width="100"/>
+        Title="Spark.Tag4D IFC Validator"
+        Width="720" SizeToContent="Height" MinWidth="560"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="CanResizeWithGrip">
+
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/Spark.Tag4D.UI;component/Themes/Tag4D.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+            <BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Grid Margin="28">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0">
+            <TextBlock Style="{StaticResource TitleText}" Text="IFC Validator"/>
+            <TextBlock Style="{StaticResource MutedText}" Margin="0,4,0,20" TextWrapping="Wrap"
+                       Text="Checks IFC files against the Spark.Tag4D parameters workbook and writes the findings to an Excel report."/>
         </StackPanel>
 
-        <Label Content="Select Excel file" Width="200" HorizontalAlignment="Left"/>
+        <Border Grid.Row="1" Style="{StaticResource Card}" Padding="20">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
 
-        <StackPanel Orientation="Horizontal" Margin="2">
-            <TextBox IsReadOnly="True" Text="{Binding ExcelFilePath, UpdateSourceTrigger=PropertyChanged}" Width="300" Margin="0 0 2 0"/>
-            <Button Content="Browse" Command="{Binding SelectExcelCommand}" Width="100"/>
-        </StackPanel>
+                <Label Grid.Row="0" Grid.ColumnSpan="2" Content="Settings file (JSON)" Padding="0,0,0,4"/>
+                <TextBox Grid.Row="1" IsReadOnly="True" Text="{Binding SettingsFilePath, Mode=OneWay}"/>
+                <Button Grid.Row="1" Grid.Column="1" Margin="8,0,0,0" Content="Browse..." Command="{Binding SelectSettingsCommand}"/>
 
-        <Label Content="Select folder with IFC files" Width="200" HorizontalAlignment="Left"/>
+                <Label Grid.Row="2" Grid.ColumnSpan="2" Content="Parameters workbook (XLSX)" Padding="0,16,0,4"/>
+                <TextBox Grid.Row="3" IsReadOnly="True" Text="{Binding ExcelFilePath, Mode=OneWay}"/>
+                <Button Grid.Row="3" Grid.Column="1" Margin="8,0,0,0" Content="Browse..." Command="{Binding SelectExcelCommand}"/>
 
-        <StackPanel Orientation="Horizontal" Margin="2">
-            <TextBox IsReadOnly="True" Text="{Binding IfcFolderPath, UpdateSourceTrigger=PropertyChanged}" Width="300" Margin="0 0 2 0"/>
-            <Button Content="Browse" Command="{Binding SelectIfcFolderCommand}" Width="100"/>
-        </StackPanel>
+                <Label Grid.Row="4" Grid.ColumnSpan="2" Content="Folder with IFC files" Padding="0,16,0,4"/>
+                <TextBox Grid.Row="5" IsReadOnly="True" Text="{Binding IfcFolderPath, Mode=OneWay}"/>
+                <Button Grid.Row="5" Grid.Column="1" Margin="8,0,0,0" Content="Browse..." Command="{Binding SelectIfcFolderCommand}"/>
+            </Grid>
+        </Border>
 
-        <Button Content="Validate" Command="{Binding ValidateCommand}" Width="100" Margin="2" HorizontalAlignment="Center"/>
-    </StackPanel>
+        <Grid Grid.Row="2" Margin="0,20,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <StackPanel VerticalAlignment="Center" Margin="0,0,16,0">
+                <TextBlock Style="{StaticResource MutedText}" Text="{Binding StatusMessage}" TextWrapping="Wrap"/>
+                <ProgressBar Height="4" Margin="0,8,0,0" IsIndeterminate="True"
+                             Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibility}}"/>
+            </StackPanel>
+
+            <Button Grid.Column="1" Style="{StaticResource PrimaryButton}" Content="Validate" MinWidth="140"
+                    Command="{Binding ValidateCommand}"/>
+        </Grid>
+    </Grid>
 </Window>
-

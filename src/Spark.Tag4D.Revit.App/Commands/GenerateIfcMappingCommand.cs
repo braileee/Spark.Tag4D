@@ -1,9 +1,9 @@
 ﻿using Autodesk.Revit.Attributes;
 using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
-using Spark.Tag4D.Core.Configuration;
 using Spark.Tag4D.Core.Models;
-using Spark.Tag4D.Core.Utils;
+using Spark.Tag4D.UI.Dialogs;
+using System.Text;
 using Spark.Tag4D.Revit.App.Models;
 using System;
 using System.Collections.Generic;
@@ -18,30 +18,26 @@ namespace Spark.Tag4D.Revit.App.Commands
         {
             try
             {
-                // Load settings
-                SettingsRoot settingsRoot = SettingsLoader.LoadExistingOrDefault();
+                TagData data = TagData.Load();
 
-                // load excel data
-
-                string excelFilePath = ExcelDataLoader.LoadOrPromptExcelFilePath(settingsRoot.ExcelSettings.FileLinkSettings);
-
-                if (string.IsNullOrEmpty(excelFilePath))
+                string mappingFilePath = FileDialogs.SaveFile("Text files (*.txt)|*.txt", "IfcMapping.txt");
+                if (string.IsNullOrEmpty(mappingFilePath))
                 {
                     return Result.Cancelled;
                 }
 
-                List<PropertySetItem> propertyDefinitions = ExcelDataLoader.LoadPropertySetItems(excelFilePath, settingsRoot.ExcelSettings.PropertiesSheet);
-
-                string mappingFilePath = FilePromptUtils.SaveFileToFolder(Environment.SpecialFolder.Desktop, "IfcMapping", "txt");
-
-                IfcMappingContent ifcMappingContent = new IfcMappingContent(propertyDefinitions);
-                string mappingData = ifcMappingContent.ToRevitTxtFormat();
-
+                string mappingData = new IfcMappingContent(data.PropertySets).ToRevitTxtFormat();
                 System.IO.File.WriteAllText(mappingFilePath, mappingData, Encoding.UTF8);
             }
-            catch (Exception ex)
+            catch (TagDataException exception)
             {
-                TaskDialog.Show("Error catched on showing start view", ex.Message);
+                TaskDialog.Show("Spark.Tag4D", exception.Message);
+                return Result.Failed;
+            }
+            catch (Exception exception)
+            {
+                TaskDialog.Show("Spark.Tag4D", $"Generating the mapping file failed: {exception.Message}");
+                return Result.Failed;
             }
 
             return Result.Succeeded;

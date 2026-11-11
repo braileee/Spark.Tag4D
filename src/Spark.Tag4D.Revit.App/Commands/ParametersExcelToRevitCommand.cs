@@ -1,7 +1,6 @@
 ﻿using Autodesk.Revit.Attributes;
 using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
-using Spark.Tag4D.Core.Configuration;
 using Spark.Tag4D.Core.Models;
 using Spark.Tag4D.Revit.App.EventHandlers;
 using Spark.Tag4D.Revit.App.Models;
@@ -18,35 +17,22 @@ namespace Spark.Tag4D.Revit.App.Commands
         {
             try
             {
-                // Load settings
-                SettingsRoot settingsRoot = SettingsLoader.LoadExistingOrDefault();
+                TagData data = TagData.Load();
 
-                // load excel data
-                string excelFilePath = ExcelDataLoader.LoadOrPromptExcelFilePath(settingsRoot.ExcelSettings.FileLinkSettings);
-
-                if (string.IsNullOrEmpty(excelFilePath))
+                new ParametersExcelToRevitEventHandler().Raise(new ParametersExcelToRevitOptions
                 {
-                    MessageBox.Show($"No excel file selected", "Error");
-                    return Result.Cancelled;
-                }
-
-                if (settingsRoot == null)
-                {
-                    MessageBox.Show($"No settings file found", "Error");
-                    return Result.Cancelled;
-                }
-
-                List<PropertySetItem> propertySetItems = ExcelDataLoader.LoadPropertySetItems(excelFilePath, settingsRoot.ExcelSettings.PropertiesSheet);
-
-                ParametersExcelToRevitEventHandler parametersExcelToRevitEventHandler = new ParametersExcelToRevitEventHandler();
-                parametersExcelToRevitEventHandler.Raise(new ParametersExcelToRevitOptions
-                {
-                    PropertySetItems = propertySetItems
+                    PropertySetItems = data.PropertySets
                 });
             }
-            catch (Exception ex)
+            catch (TagDataException exception)
             {
-                TaskDialog.Show("Error catched on showing start view", ex.Message);
+                TaskDialog.Show("Spark.Tag4D", exception.Message);
+                return Result.Cancelled;
+            }
+            catch (Exception exception)
+            {
+                TaskDialog.Show("Spark.Tag4D", $"Importing the parameters failed: {exception.Message}");
+                return Result.Failed;
             }
 
             return Result.Succeeded;
