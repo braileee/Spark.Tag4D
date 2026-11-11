@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<KeyinTree xmlns="http://www.bentley.com/schemas/1.0/MicroStation/AddIn/KeyinTree.xsd">
+	<RootKeyinTable ID="root">
+		<Keyword SubtableRef="Commands" CommandClass="MacroCommand" CommandWord="Spark.Tag4D.Microstation" >
+			<Options Required ="true" TryParse="true"/>
+		</Keyword>
+	</RootKeyinTable>
+
+	<SubKeyinTables>
+		<KeyinTable ID="Commands">
+			<Keyword CommandWord="LoadParameters" />
+			<Keyword CommandWord="TagElements" />
+			<Keyword CommandWord="ShowSettings" />
+		</KeyinTable>
+	</SubKeyinTables>
+
+	<KeyinHandlers>
+		<KeyinHandler Keyin="Spark.Tag4D.Microstation LoadParameters" Function="Spark.Tag4D.Microstation.Keyins.LoadParameters"/>
+		<KeyinHandler Keyin="Spark.Tag4D.Microstation TagElements" Function="Spark.Tag4D.Microstation.Keyins.TagElements"/>
+		<KeyinHandler Keyin="Spark.Tag4D.Microstation ShowSettings" Function="Spark.Tag4D.Microstation.Keyins.ShowSettings"/>
+	</KeyinHandlers>
+</KeyinTree>

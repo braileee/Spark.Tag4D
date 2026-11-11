@@ -1,0 +1,118 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
+
+	<PropertyGroup>
+		<UseWPF>true</UseWPF>
+		<Configurations>DebugMS2025;ReleaseMS2025;</Configurations>
+		<OutputType>Library</OutputType>
+		<TargetFramework>net48</TargetFramework>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<EmbeddedResource Include="commands.xml">
+			<LogicalName>CommandTable.xml</LogicalName>
+			<SubType>Designer</SubType>
+		</EmbeddedResource>
+	</ItemGroup>
+
+	<ItemGroup>
+		<Reference Include="Bentley.DgnDisplayNET">
+			<HintPath>C:\Program Files\Bentley\MicroStation 2025\MicroStation\Bentley.DgnDisplayNet.dll</HintPath>
+			<Private>False</Private>
+		</Reference>
+		<Reference Include="Bentley.DgnPlatformNET">
+			<HintPath>C:\Program Files\Bentley\MicroStation 2025\MicroStation\Bentley.DgnPlatformNET.dll</HintPath>
+			<Private>False</Private>
+			<EmbedInteropTypes>False</EmbedInteropTypes>
+		</Reference>
+		<Reference Include="Bentley.Interop.MicroStationDGN">
+			<HintPath>C:\Program Files\Bentley\MicroStation 2025\MicroStation\Assemblies\Bentley.Interop.MicroStationDGN.dll</HintPath>
+			<Private>False</Private>
+		</Reference>
+		<Reference Include="Bentley.Platform">
+			<HintPath>C:\Program Files\Bentley\MicroStation 2025\MicroStation\Assemblies\ECFramework\Bentley.Platform.dll</HintPath>
+			<Private>False</Private>
+		</Reference>
+		<Reference Include="PresentationFramework" />
+		<Reference Include="ustation">
+			<HintPath>C:\Program Files\Bentley\MicroStation 2025\MicroStation\ustation.dll</HintPath>
+			<EmbedInteropTypes>False</EmbedInteropTypes>
+			<Private>False</Private>
+		</Reference>
+		<Reference Include="Bentley.ECObjects3">
+			<HintPath>C:\Program Files\Bentley\MicroStation 2025\MicroStation\Assemblies\ECFramework\Bentley.ECObjects3.dll</HintPath>
+			<EmbedInteropTypes>False</EmbedInteropTypes>
+			<Private>False</Private>
+		</Reference>
+		<Reference Include="PresentationCore">
+			<Private>False</Private>
+		</Reference>
+		<Reference Include="PresentationFramework">
+			<Private>False</Private>
+		</Reference>
+		<Reference Include="System.ComponentModel.Composition">
+			<Private>False</Private>
+		</Reference>
+		<Reference Include="System.ComponentModel.DataAnnotations">
+			<Private>False</Private>
+		</Reference>
+		<Reference Include="System.Configuration">
+			<Private>False</Private>
+		</Reference>
+		<Reference Include="System.Web">
+			<Private>False</Private>
+		</Reference>
+		<Reference Include="System.Web.Extensions">
+			<Private>False</Private>
+		</Reference>
+		<Reference Include="System.Xaml">
+			<Private>False</Private>
+		</Reference>
+		<Reference Include="System.Data.DataSetExtensions">
+			<Private>False</Private>
+		</Reference>
+		<Reference Include="Microsoft.CSharp">
+			<Private>False</Private>
+		</Reference>
+		<Reference Include="System.Net.Http">
+			<Private>False</Private>
+		</Reference>
+		<Reference Include="WindowsBase">
+			<Private>False</Private>
+		</Reference>
+		<Reference Include="System.Windows.Forms">
+			<Private>False</Private>
+		</Reference>
+
+		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+		<PackageReference Include="NPOI" Version="2.5.6" />
+		<PackageReference Include="Prism.Wpf" Version="8.1.97" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Compile Update="Properties\Settings.Designer.cs">
+			<DesignTimeSharedInput>True</DesignTimeSharedInput>
+			<AutoGen>True</AutoGen>
+			<DependentUpon>Settings.settings</DependentUpon>
+		</Compile>
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Update="Properties\Settings.settings">
+			<Generator>SettingsSingleFileGenerator</Generator>
+			<LastGenOutput>Settings.Designer.cs</LastGenOutput>
+		</None>
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Folder Include="Output\" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <ProjectReference Include="..\Spark.Tag4D.Core\Spark.Tag4D.Core.csproj" />
+	</ItemGroup>
+
+	<Target Name="PostBuild" AfterTargets="PostBuildEvent">
+		<Exec Command="echo Copying output to project Output folder...&#xD;&#xA;&#xD;&#xA;set TARGETDIR=$(TargetDir)&#xD;&#xA;set DESTDIR=$(ProjectDir)Output\$(ProjectName)&#xD;&#xA;set OUTPUTZIPFILE=$(ProjectDir)Output\$(ProjectName).zip&#xD;&#xA;&#xD;&#xA;REM --- CREATE DESTINATION FOLDER IF NOT EXISTS ---&#xD;&#xA;if not exist &quot;%25DESTDIR%25&quot; (&#xD;&#xA;    mkdir &quot;%25DESTDIR%25&quot;&#xD;&#xA;)&#xD;&#xA;&#xD;&#xA;REM --- COPY FROM TARGETDIR TO DESTDIR ---&#xD;&#xA;xcopy &quot;%25TARGETDIR%25*.*&quot; &quot;%25DESTDIR%25\&quot; /F /R /Y /I /S &gt; NUL&#xD;&#xA;if errorlevel 1 (&#xD;&#xA;    echo ERROR: Failed to copy files to &quot;%25DESTDIR%25&quot;.&#xD;&#xA;    exit /b 1&#xD;&#xA;)&#xD;&#xA;&#xD;&#xA;REM --- ZIP OUTPUT ---&#xD;&#xA;if exist &quot;%25OUTPUTZIPFILE%25&quot; del /F /Q &quot;%25OUTPUTZIPFILE%25&quot;&#xD;&#xA;&#xD;&#xA;&quot;C:\Program Files\7-Zip\7z.exe&quot; a -tzip &quot;%25OUTPUTZIPFILE%25&quot; &quot;%25DESTDIR%25\*&quot; -y&#xD;&#xA;&#xD;&#xA;echo Build script completed." />
+	</Target>
+
+</Project>

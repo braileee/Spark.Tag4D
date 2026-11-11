@@ -1,0 +1,40 @@
+﻿<Window x:Class="Spark.Tag4D.Settings.Views.SettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:Spark.Tag4D.Settings.Views"
+             mc:Ignorable="d" 
+             MinWidth="600"
+             SizeToContent="WidthAndHeight" Closing="Window_Closing">
+
+    <TabControl ScrollViewer.CanContentScroll="True">
+        <TabItem Header="Paths">
+            <local:PathsView DataContext="{Binding PathsViewModel}"/>
+        </TabItem>
+
+        <TabItem Header="Properties">
+            <local:PropertiesView DataContext="{Binding PropertiesViewModel}"/>
+        </TabItem>
+
+        <TabItem Header="Picklists">
+            <local:PicklistView DataContext="{Binding PicklistViewModel}"/>
+        </TabItem>
+
+        <TabItem Header="Exact Matches">
+            <local:ExactMatchesView DataContext="{Binding ExactMatchesViewModel}"/>
+        </TabItem>
+
+        <TabItem Header="Matches">
+            <local:MatchesView DataContext="{Binding MatchesViewModel}"/>
+        </TabItem>
+        
+        <TabItem Header="Expressions">
+            <local:ExpressionEditorView DataContext="{Binding ExpressionEditorViewModel}"/>
+        </TabItem>
+        
+        <TabItem Header="Composed Properties">
+            <local:ComposedView DataContext="{Binding ComposedViewModel}"/>
+        </TabItem>
+    </TabControl>
+</Window>
