@@ -1,6 +1,6 @@
 ﻿using Spark.Tag4D.Settings.Models;
-using Prism.Commands;
-using Prism.Mvvm;
+using Spark.Tag4D.Core.Mvvm;
+
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace Spark.Tag4D.Settings.ViewModels.Support
 {
-    public class ExactMatchTableViewModel : BindableBase
+    public class ExactMatchTableViewModel : ObservableObject
     {
         private readonly Action _markDirty;
 
@@ -24,10 +24,10 @@ namespace Spark.Tag4D.Settings.ViewModels.Support
             _markDirty = markDirty;
 
             AddRowCommand =
-                new DelegateCommand(AddRow);
+                new RelayCommand(AddRow);
 
             RemoveRowCommand =
-                new DelegateCommand<ExactMatchRowViewModel>(
+                new RelayCommand<ExactMatchRowViewModel>(
                     RemoveRow);
 
             AvailableColumnNames = new ObservableCollection<string>(table.AvailableColumnNames);
@@ -48,9 +48,9 @@ namespace Spark.Tag4D.Settings.ViewModels.Support
         public ObservableCollection<ExactMatchRowViewModel> Rows { get; }
             = new();
 
-        public DelegateCommand AddRowCommand { get; }
+        public RelayCommand AddRowCommand { get; }
 
-        public DelegateCommand<ExactMatchRowViewModel>
+        public RelayCommand<ExactMatchRowViewModel>
             RemoveRowCommand
         { get; }
 
@@ -132,7 +132,7 @@ namespace Spark.Tag4D.Settings.ViewModels.Support
             {
                 if (SetProperty(ref _sheetPrefix, value))
                 {
-                    RaisePropertyChanged(nameof(WorksheetName));
+                    OnPropertyChanged(nameof(WorksheetName));
 
                     _markDirty();
                 }

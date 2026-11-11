@@ -9,7 +9,10 @@
              d:DesignHeight="450" d:DesignWidth="800"
              Background="White">
 
-    <Page.Resources>
+    <Page.Resources><ResourceDictionary>
+<ResourceDictionary.MergedDictionaries>
+<ResourceDictionary Source="pack://application:,,,/Spark.Tag4D.UI;component/Themes/Tag4D.xaml"/>
+</ResourceDictionary.MergedDictionaries>
         <!-- Text -->
         <DataTemplate x:Key="StringTemplate">
             <TextBox Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}"
@@ -48,7 +51,7 @@
                 IntTemplate="{StaticResource IntTemplate}" 
                 BoolTemplate="{StaticResource BoolTemplate}" 
                 ComboTemplate="{StaticResource ComboTemplate}" />
-    </Page.Resources>
+    </ResourceDictionary></Page.Resources>
 
     <StackPanel>
         <Label Content="{Binding SelectedElementsInfo}" Margin="2"/>

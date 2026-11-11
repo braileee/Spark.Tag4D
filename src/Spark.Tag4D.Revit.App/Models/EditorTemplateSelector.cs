@@ -1,4 +1,5 @@
-﻿using System.Windows;
+﻿using Spark.Tag4D.Core.Models;
+using System.Windows;
 using System.Windows.Controls;
 
 namespace Spark.Tag4D.Revit.App.Models

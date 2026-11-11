@@ -1,5 +1,6 @@
-﻿using Spark.Tag4D.Settings.ViewModels;
-using Prism.Mvvm;
+﻿using Spark.Tag4D.Core.Mvvm;
+using Spark.Tag4D.Settings.ViewModels;
+
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -11,7 +12,7 @@ using System.Windows.Media.Animation;
 namespace Spark.Tag4D.Settings.Models
 {
 
-    public class PicklistObservable : BindableBase, INotifyDataErrorInfo
+    public class PicklistObservable : ObservableObject, INotifyDataErrorInfo
     {
 
         private string _name;

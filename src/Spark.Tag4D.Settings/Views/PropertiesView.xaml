@@ -6,6 +6,14 @@
              xmlns:local="clr-namespace:Spark.Tag4D.Settings.Views"
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="800">
+<UserControl.Resources>
+<ResourceDictionary>
+<ResourceDictionary.MergedDictionaries>
+<ResourceDictionary Source="pack://application:,,,/Spark.Tag4D.UI;component/Themes/Tag4D.xaml"/>
+</ResourceDictionary.MergedDictionaries>
+</ResourceDictionary>
+</UserControl.Resources>
+
     <StackPanel>
 
         <ScrollViewer ScrollViewer.CanContentScroll="True">
@@ -20,11 +28,11 @@
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
 
-                            <Border BorderBrush="Gray" BorderThickness="1" Margin="5">
+                            <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" Margin="5">
                                 <StackPanel>
 
                                     <!-- Property Set Header -->
-                                    <DockPanel Background="#EEE">
+                                    <DockPanel Background="{StaticResource SurfaceAltBrush}">
                                         <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"
                                              FontWeight="Bold"
                                              Width="200"
@@ -36,7 +44,7 @@
                                             CommandParameter="{Binding}"
                                             Margin="5"/>
 
-                                        <Button Content="Remove Set"
+                                        <Button Style="{StaticResource DangerButton}" Content="Remove Set"
                                             Command="{Binding DataContext.RemovePropertySetCommand,
                                                       RelativeSource={RelativeSource AncestorType=UserControl}}"
                                             CommandParameter="{Binding}"
@@ -63,7 +71,7 @@
                                                           SelectedItem="{Binding DataType, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
 
                                                     <!-- Remove -->
-                                                    <Button Grid.Column="2"
+                                                    <Button Style="{StaticResource DangerIconButton}" Grid.Column="2"
                                                         Content="X"
                                                         Command="{Binding DataContext.RemovePropertyCommand,
                                                                   RelativeSource={RelativeSource AncestorType=UserControl}}"
@@ -84,7 +92,7 @@
         </ScrollViewer>
 
         <StackPanel Orientation="Horizontal" Margin="2">
-            <Button Content="Save" Command="{Binding SaveCommand}" Padding="2" Margin="2"/>
+            <Button Style="{StaticResource PrimaryButton}" Content="Save" Command="{Binding SaveCommand}" Padding="2" Margin="2"/>
         </StackPanel>
     </StackPanel>
 </UserControl>

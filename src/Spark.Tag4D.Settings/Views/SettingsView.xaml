@@ -5,8 +5,18 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Spark.Tag4D.Settings.Views"
              mc:Ignorable="d" 
-             MinWidth="600"
-             SizeToContent="WidthAndHeight" Closing="Window_Closing">
+             Title="Spark.Tag4D Settings"
+             Width="1100" Height="720" MinWidth="760" MinHeight="480"
+             WindowStartupLocation="CenterScreen"
+             Closing="Window_Closing">
+<Window.Resources>
+<ResourceDictionary>
+<ResourceDictionary.MergedDictionaries>
+<ResourceDictionary Source="pack://application:,,,/Spark.Tag4D.UI;component/Themes/Tag4D.xaml"/>
+</ResourceDictionary.MergedDictionaries>
+</ResourceDictionary>
+</Window.Resources>
+
 
     <TabControl ScrollViewer.CanContentScroll="True">
         <TabItem Header="Paths">

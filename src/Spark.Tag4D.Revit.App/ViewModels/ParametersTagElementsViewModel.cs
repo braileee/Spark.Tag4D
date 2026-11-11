@@ -2,11 +2,11 @@
 using Autodesk.Revit.DB.ExtensibleStorage;
 using Autodesk.Revit.UI;
 using Autodesk.Revit.UI.Events;
-using Spark.Tag4D.Core.Json;
+using Spark.Tag4D.Core.Configuration;
 using Spark.Tag4D.Core.Models;
 using NPOI.Util.Collections;
-using Prism.Commands;
-using Prism.Mvvm;
+using Spark.Tag4D.Core.Mvvm;
+
 using Spark.Tag4D.Revit.Core;
 using Spark.Tag4D.Revit.App.EventHandlers;
 using Spark.Tag4D.Revit.App.Models;
@@ -25,7 +25,7 @@ using static NPOI.HSSF.UserModel.HeaderFooter;
 
 namespace Spark.Tag4D.Revit.App.ViewModels
 {
-    public class ParametersTagElementsViewModel : BindableBase
+    public class ParametersTagElementsViewModel : ObservableObject
     {
         private List<Element> selectedElements;
 
@@ -61,8 +61,8 @@ namespace Spark.Tag4D.Revit.App.ViewModels
             uiapp.SelectionChanged -= SelectionChanged;
             uiapp.SelectionChanged += SelectionChanged;
 
-            ApplyCommand = new DelegateCommand(OnApplyCommand);
-            UpdateValuesCommand = new DelegateCommand(OnUpdateValuesCommand);
+            ApplyCommand = new RelayCommand(OnApplyCommand);
+            UpdateValuesCommand = new RelayCommand(OnUpdateValuesCommand);
 
             ParametersTagElementsEventHandler = new ParametersTagElementsEventHandler();
         }
@@ -233,11 +233,11 @@ namespace Spark.Tag4D.Revit.App.ViewModels
                     Fields.CollectionChanged += FieldsCollectionChanged;
                 }
 
-                RaisePropertyChanged();
+                OnPropertyChanged();
             }
         }
-        public DelegateCommand ApplyCommand { get; }
-        public DelegateCommand UpdateValuesCommand { get; }
+        public RelayCommand ApplyCommand { get; }
+        public RelayCommand UpdateValuesCommand { get; }
         public ParametersTagElementsEventHandler ParametersTagElementsEventHandler { get; }
 
         public List<Element> SelectedElements
@@ -250,7 +250,7 @@ namespace Spark.Tag4D.Revit.App.ViewModels
             set
             {
                 selectedElements = value;
-                RaisePropertyChanged();
+                OnPropertyChanged();
             }
         }
 
@@ -263,7 +263,7 @@ namespace Spark.Tag4D.Revit.App.ViewModels
             set
             {
                 selectedElementsInfo = value;
-                RaisePropertyChanged();
+                OnPropertyChanged();
             }
         }
 

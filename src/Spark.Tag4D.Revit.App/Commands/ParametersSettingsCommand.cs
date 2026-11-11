@@ -1,7 +1,7 @@
 ﻿using Autodesk.Revit.Attributes;
 using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
-using Spark.Tag4D.Core.Json;
+using Spark.Tag4D.Core.Configuration;
 using Spark.Tag4D.Core.Models;
 using Spark.Tag4D.Settings.ViewModels;
 using Spark.Tag4D.Settings.Views;

@@ -108,5 +108,27 @@ namespace Spark.Tag4D.Core.Tests
             Assert.Equal("1.2.<Missing>", ComposedItemEvaluator.Resolve(item, values));
             Assert.Equal(new[] { "A", "b", "Missing" }, ComposedItemEvaluator.GetPropertyNames(item.Formula).ToArray());
         }
+
+        [Fact]
+        public void TagData_loads_everything_in_one_call()
+        {
+            TagData data = TagData.Load(_settings, _workbookPath);
+
+            Assert.NotEmpty(data.PropertySets);
+            Assert.NotEmpty(data.Picklists);
+            Assert.NotEmpty(data.LayerMappings);
+            Assert.NotEmpty(data.Matches);
+            Assert.NotEmpty(data.ExactMatches);
+            Assert.NotEmpty(data.Expressions);
+            Assert.NotEmpty(data.Composed);
+            Assert.True(data.PicklistsByProperty.ContainsKey("LocationRoot"));
+        }
+
+        [Fact]
+        public void TagData_reports_a_missing_workbook_with_a_friendly_error()
+        {
+            var exception = Assert.Throws<TagDataException>(() => TagData.Load(_settings, Path.Combine(Path.GetTempPath(), "nope.xlsx")));
+            Assert.Contains("Excel", exception.Message);
+        }
     }
 }

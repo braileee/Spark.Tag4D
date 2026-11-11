@@ -12,7 +12,7 @@ namespace Spark.Tag4D.Revit.Core.ViewModels
     {
         public event PropertyChangedEventHandler PropertyChanged;
 
-        protected virtual void RaisePropertyChanged([CallerMemberName] string propertyName = null)
+        protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }

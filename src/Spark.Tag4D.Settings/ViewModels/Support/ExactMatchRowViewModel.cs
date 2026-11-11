@@ -1,5 +1,6 @@
-﻿using Spark.Tag4D.Settings.Models;
-using Prism.Mvvm;
+﻿using Spark.Tag4D.Core.Mvvm;
+using Spark.Tag4D.Settings.Models;
+
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -9,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace Spark.Tag4D.Settings.ViewModels.Support
 {
-    public class ExactMatchRowViewModel : BindableBase
+    public class ExactMatchRowViewModel : ObservableObject
     {
         private readonly Action _markDirty;
 

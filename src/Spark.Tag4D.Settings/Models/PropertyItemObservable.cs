@@ -1,5 +1,6 @@
-﻿using Prism.Common;
-using Prism.Mvvm;
+﻿using Spark.Tag4D.Core.Mvvm;
+
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace Spark.Tag4D.Settings.Models
 {
-    public class PropertyItemObservable : BindableBase
+    public class PropertyItemObservable : ObservableObject
     {
         private string _propertyName;
         public string PropertyName

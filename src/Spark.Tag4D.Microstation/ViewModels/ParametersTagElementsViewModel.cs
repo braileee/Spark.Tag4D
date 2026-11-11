@@ -1,11 +1,11 @@
 ﻿using Bentley.DgnPlatformNET;
 using Bentley.DgnPlatformNET.Elements;
-using Spark.Tag4D.Core.Json;
+using Spark.Tag4D.Core.Configuration;
 using Spark.Tag4D.Core.Models;
 using Spark.Tag4D.Microstation.Extensions;
 using Spark.Tag4D.Microstation.Models;
-using Prism.Commands;
-using Prism.Mvvm;
+using Spark.Tag4D.Core.Mvvm;
+
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -16,7 +16,7 @@ using System.Windows;
 
 namespace Spark.Tag4D.Microstation.ViewModels
 {
-    public class ParametersTagElementsViewModel : BindableBase
+    public class ParametersTagElementsViewModel : ObservableObject
     {
         public ParametersTagElementsViewModel(DgnFile dgnFile, SettingsRoot settingsRoot, List<PropertySetItem> propertySetItems, List<PicklistGroup> picklistGroups, List<LayerMappingItem> layerMappingItems, List<ExpressionItem> expressionItems, List<PropertyValueMatch> propertyValueMatches, List<Element> selectedElements, List<ComposedPropertyItem> composedPropertyItems, List<PropertyValueMatch> propertyValueExactMatches)
         {
@@ -26,10 +26,10 @@ namespace Spark.Tag4D.Microstation.ViewModels
 
             PropertiesWithValues = propertiesWithValues;
 
-            ApplyCommand = new DelegateCommand(OnApplyCommand);
-            UpdateSelectionCommand = new DelegateCommand(OnUpdateSelectionCommand);
+            ApplyCommand = new RelayCommand(OnApplyCommand);
+            UpdateSelectionCommand = new RelayCommand(OnUpdateSelectionCommand);
 
-            UpdateValuesCommand = new DelegateCommand(OnUpdateValuesCommand);
+            UpdateValuesCommand = new RelayCommand(OnUpdateValuesCommand);
 
             DgnFile = dgnFile;
             SettingsRoot = settingsRoot;
@@ -284,7 +284,7 @@ namespace Spark.Tag4D.Microstation.ViewModels
             set
             {
                 selectedElements = value;
-                RaisePropertyChanged();
+                OnPropertyChanged();
             }
         }
         public List<PropertyItem> CustomProperties { get; } = new List<PropertyItem>();
@@ -310,13 +310,13 @@ namespace Spark.Tag4D.Microstation.ViewModels
                     Fields.CollectionChanged += FieldsCollectionChanged;
                 }
 
-                RaisePropertyChanged();
+                OnPropertyChanged();
             }
         }
-        public DelegateCommand ApplyCommand { get; }
-        public DelegateCommand UpdateSelectionCommand { get; }
-        public DelegateCommand UpdateValuesCommand { get; }
-        public DelegateCommand SelectElementsCommand { get; }
+        public RelayCommand ApplyCommand { get; }
+        public RelayCommand UpdateSelectionCommand { get; }
+        public RelayCommand UpdateValuesCommand { get; }
+        public RelayCommand SelectElementsCommand { get; }
 
         private string selectedElementsInfo;
         private ObservableCollection<PropertyField> fields = new ObservableCollection<PropertyField>();
@@ -328,7 +328,7 @@ namespace Spark.Tag4D.Microstation.ViewModels
             set
             {
                 selectedElementsInfo = value;
-                RaisePropertyChanged();
+                OnPropertyChanged();
             }
         }
 

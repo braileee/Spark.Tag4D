@@ -1,9 +1,9 @@
-﻿using Spark.Tag4D.Core.Json;
+using Spark.Tag4D.Core.Configuration;
 using Spark.Tag4D.Core.Models;
 using Spark.Tag4D.Settings.Models;
-using Prism.Commands;
-using Prism.Mvvm;
-using Prism.Regions;
+using Spark.Tag4D.Core.Mvvm;
+
+
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -15,17 +15,17 @@ using System.Windows;
 
 namespace Spark.Tag4D.Settings.ViewModels
 {
-    public class PicklistViewModel : BindableBase
+    public class PicklistViewModel : ObservableObject
     {
         public ObservableCollection<PicklistObservable> Picklists { get; }
             = new ObservableCollection<PicklistObservable>();
 
-        public DelegateCommand<PicklistObservable> AddItemCommand { get; }
-        public DelegateCommand<PicklistItemObservable> RemoveItemCommand { get; }
+        public RelayCommand<PicklistObservable> AddItemCommand { get; }
+        public RelayCommand<PicklistItemObservable> RemoveItemCommand { get; }
         public SettingsRoot SettingsRoot { get; }
-        public DelegateCommand AddPicklistCommand { get; }
+        public RelayCommand AddPicklistCommand { get; }
 
-        public DelegateCommand<PicklistObservable> RemovePicklistCommand { get; }
+        public RelayCommand<PicklistObservable> RemovePicklistCommand { get; }
 
         private List<string> availablePicklistGroupNames;
         public List<string> AvailablePicklistGroupNames
@@ -34,7 +34,7 @@ namespace Spark.Tag4D.Settings.ViewModels
             set
             {
                 availablePicklistGroupNames = value;
-                RaisePropertyChanged();
+                OnPropertyChanged();
             }
         }
 
@@ -43,11 +43,11 @@ namespace Spark.Tag4D.Settings.ViewModels
             SettingsRoot = settingsRoot;
             LoadFromExcel();
 
-            AddItemCommand = new DelegateCommand<PicklistObservable>(AddItem);
-            RemoveItemCommand = new DelegateCommand<PicklistItemObservable>(RemoveItem);
-            SaveCommand = new DelegateCommand(Save, CanSave).ObservesProperty(() => IsDirty);
-            AddPicklistCommand = new DelegateCommand(AddPicklist);
-            RemovePicklistCommand = new DelegateCommand<PicklistObservable>(OnRemovePicklistCommand);
+            AddItemCommand = new RelayCommand<PicklistObservable>(AddItem);
+            RemoveItemCommand = new RelayCommand<PicklistItemObservable>(RemoveItem);
+            SaveCommand = new RelayCommand(Save, CanSave);
+            AddPicklistCommand = new RelayCommand(AddPicklist);
+            RemovePicklistCommand = new RelayCommand<PicklistObservable>(OnRemovePicklistCommand);
 
             Picklists.CollectionChanged += (s, e) =>
             {
@@ -59,7 +59,13 @@ namespace Spark.Tag4D.Settings.ViewModels
         public bool IsDirty
         {
             get => _isDirty;
-            set => SetProperty(ref _isDirty, value);
+            set
+            {
+                if (SetProperty(ref _isDirty, value))
+                {
+                    SaveCommand?.RaiseCanExecuteChanged();
+                }
+            }
         }
 
         private bool CanSave()
@@ -135,7 +141,7 @@ namespace Spark.Tag4D.Settings.ViewModels
 
                 IsDirty = false;
 
-                RaisePropertyChanged(nameof(IsDirty));
+                OnPropertyChanged(nameof(IsDirty));
                 SaveCommand.RaiseCanExecuteChanged();
             }
             catch (Exception)
@@ -144,7 +150,7 @@ namespace Spark.Tag4D.Settings.ViewModels
             }
         }
 
-        public DelegateCommand SaveCommand { get; }
+        public RelayCommand SaveCommand { get; }
         public List<PropertySetItem> PropertySetItems { get; private set; } = new List<PropertySetItem>();
 
         private void LoadFromExcel()

@@ -1,13 +1,9 @@
-﻿using Spark.Tag4D.Core;
-using Spark.Tag4D.Core.Json;
+using Spark.Tag4D.Core;
+using Spark.Tag4D.Core.Configuration;
 using Spark.Tag4D.Core.Models;
 using Spark.Tag4D.Settings.Models;
-using NPOI.HPSF;
-using NPOI.HSSF.UserModel;
-using NPOI.SS.UserModel;
-using NPOI.XSSF.UserModel;
-using Prism.Commands;
-using Prism.Mvvm;
+using Spark.Tag4D.Core.Mvvm;
+
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -19,26 +15,32 @@ using System.Windows;
 
 namespace Spark.Tag4D.Settings.ViewModels
 {
-    public class PropertiesViewModel : BindableBase
+    public class PropertiesViewModel : ObservableObject
     {
         public ObservableCollection<PropertySetItemObservable> PropertySets { get; }
        = new ObservableCollection<PropertySetItemObservable>();
 
-        public DelegateCommand AddPropertySetCommand { get; }
-        public DelegateCommand<PropertySetItemObservable> RemovePropertySetCommand { get; }
+        public RelayCommand AddPropertySetCommand { get; }
+        public RelayCommand<PropertySetItemObservable> RemovePropertySetCommand { get; }
 
-        public DelegateCommand<PropertySetItemObservable> AddPropertyCommand { get; }
-        public DelegateCommand<PropertyItemObservable> RemovePropertyCommand { get; }
+        public RelayCommand<PropertySetItemObservable> AddPropertyCommand { get; }
+        public RelayCommand<PropertyItemObservable> RemovePropertyCommand { get; }
         public SettingsRoot SettingsRoot { get; }
 
 
-        public DelegateCommand SaveCommand { get; }
+        public RelayCommand SaveCommand { get; }
 
         private bool _hasUnsavedChanges;
         public bool HasUnsavedChanges
         {
             get => _hasUnsavedChanges;
-            set => SetProperty(ref _hasUnsavedChanges, value);
+            set
+            {
+                if (SetProperty(ref _hasUnsavedChanges, value))
+                {
+                    SaveCommand?.RaiseCanExecuteChanged();
+                }
+            }
         }
 
         private readonly string _excelFilePath;
@@ -48,11 +50,11 @@ namespace Spark.Tag4D.Settings.ViewModels
         {
             SettingsRoot = settingsRoot;
 
-            AddPropertySetCommand = new DelegateCommand(AddPropertySet);
-            RemovePropertySetCommand = new DelegateCommand<PropertySetItemObservable>(RemovePropertySet);
+            AddPropertySetCommand = new RelayCommand(AddPropertySet);
+            RemovePropertySetCommand = new RelayCommand<PropertySetItemObservable>(RemovePropertySet);
 
-            AddPropertyCommand = new DelegateCommand<PropertySetItemObservable>(AddProperty);
-            RemovePropertyCommand = new DelegateCommand<PropertyItemObservable>(RemoveProperty);
+            AddPropertyCommand = new RelayCommand<PropertySetItemObservable>(AddProperty);
+            RemovePropertyCommand = new RelayCommand<PropertyItemObservable>(RemoveProperty);
 
             string excelFilePath = ExcelDataLoader.LoadOrPromptExcelFilePath(settingsRoot.ExcelSettings.FileLinkSettings);
             List<PropertySetItem> propertySetItems = ExcelDataLoader.LoadPropertySetItems(excelFilePath, settingsRoot.ExcelSettings.PropertiesSheet);
@@ -84,7 +86,7 @@ namespace Spark.Tag4D.Settings.ViewModels
             PropertySets.CollectionChanged += (s, e) => HasUnsavedChanges = true;
 
 
-            SaveCommand = new DelegateCommand(Save).ObservesCanExecute(() => HasUnsavedChanges);
+            SaveCommand = new RelayCommand(Save, () => HasUnsavedChanges);
 
         }
 
@@ -123,11 +125,11 @@ namespace Spark.Tag4D.Settings.ViewModels
 
                 HasUnsavedChanges = false;
 
-                MessageBox.Show("Picklists saved successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show("Properties saved successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception)
             {
-                MessageBox.Show("An error occurred while saving the picklists.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("An error occurred while saving the properties.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 

@@ -1,17 +1,17 @@
-﻿using Spark.Tag4D.Core.Json;
+﻿using Spark.Tag4D.Core.Configuration;
 using Spark.Tag4D.Core.Models;
 using Spark.Tag4D.Settings.Models;
 using Spark.Tag4D.Settings.Services;
 using Spark.Tag4D.Settings.ViewModels.Support;
-using Prism.Commands;
-using Prism.Mvvm;
+using Spark.Tag4D.Core.Mvvm;
+
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 
 namespace Spark.Tag4D.Settings.ViewModels
 {
-    public class ComposedViewModel : BindableBase
+    public class ComposedViewModel : ObservableObject
     {
         public ObservableCollection<PropertyItem>
             AvailableProperties
@@ -23,24 +23,24 @@ namespace Spark.Tag4D.Settings.ViewModels
         { get; }
             = new();
 
-        public DelegateCommand AddComposedPropertyCommand { get; }
+        public RelayCommand AddComposedPropertyCommand { get; }
 
-        public DelegateCommand<ComposedProperty>
+        public RelayCommand<ComposedProperty>
             DeleteComposedPropertyCommand
         { get; }
 
-        public DelegateCommand<ComposedProperty>
+        public RelayCommand<ComposedProperty>
             AddSegmentCommand
         { get; }
 
-        public DelegateCommand SaveCommand { get; }
+        public RelayCommand SaveCommand { get; }
         public SettingsRoot Settings { get; }
 
-        public DelegateCommand<FormulaSegment>
+        public RelayCommand<FormulaSegment>
     InsertSegmentAfterCommand
         { get; }
 
-        public DelegateCommand<FormulaSegment>
+        public RelayCommand<FormulaSegment>
             RemoveSegmentCommand
         { get; }
 
@@ -49,25 +49,25 @@ namespace Spark.Tag4D.Settings.ViewModels
             Settings = settings;
 
             AddComposedPropertyCommand =
-                new DelegateCommand(AddComposedProperty);
+                new RelayCommand(AddComposedProperty);
 
             DeleteComposedPropertyCommand =
-                new DelegateCommand<ComposedProperty>(
+                new RelayCommand<ComposedProperty>(
                     DeleteComposedProperty);
 
             AddSegmentCommand =
-                new DelegateCommand<ComposedProperty>(AddSegment);
+                new RelayCommand<ComposedProperty>(AddSegment);
 
             InsertSegmentAfterCommand =
-    new DelegateCommand<FormulaSegment>(
+    new RelayCommand<FormulaSegment>(
         InsertSegmentAfter);
 
             RemoveSegmentCommand =
-                new DelegateCommand<FormulaSegment>(
+                new RelayCommand<FormulaSegment>(
                     RemoveSegment);
 
             SaveCommand =
-                new DelegateCommand(Save);
+                new RelayCommand(Save);
 
             LoadData();
         }

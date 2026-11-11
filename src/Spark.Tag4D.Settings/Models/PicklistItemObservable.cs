@@ -1,4 +1,5 @@
-﻿using Prism.Mvvm;
+﻿using Spark.Tag4D.Core.Mvvm;
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace Spark.Tag4D.Settings.Models
 {
-    public class PicklistItemObservable : BindableBase
+    public class PicklistItemObservable : ObservableObject
     {
         private string _value;
         public string Value

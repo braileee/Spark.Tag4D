@@ -1,11 +1,11 @@
-﻿using Spark.Tag4D.Core.Json;
+﻿using Spark.Tag4D.Core.Configuration;
 using Spark.Tag4D.Core.Models;
 using Spark.Tag4D.Settings.Models;
 using Spark.Tag4D.Settings.Services;
 using Spark.Tag4D.Settings.ViewModels.Support;
 using Microsoft.Win32;
-using Prism.Commands;
-using Prism.Mvvm;
+using Spark.Tag4D.Core.Mvvm;
+
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -14,7 +14,7 @@ using System.Xml.Linq;
 
 namespace Spark.Tag4D.Settings.ViewModels
 {
-    public class MatchesViewModel : BindableBase
+    public class MatchesViewModel : ObservableObject
     {
         private readonly MatchExcelService _matchExcelService;
         private readonly IDialogService _dialogService;
@@ -31,16 +31,16 @@ namespace Spark.Tag4D.Settings.ViewModels
             _settingsRoot = settingsRoot;
 
             OpenCommand =
-                new DelegateCommand(Open);
+                new RelayCommand(Open);
 
             SaveCommand =
-                new DelegateCommand(Save);
+                new RelayCommand(Save);
 
             AddMatchTableCommand =
-                new DelegateCommand(AddMatchTable);
+                new RelayCommand(AddMatchTable);
 
             RemoveMatchTableCommand =
-                new DelegateCommand<MatchTableViewModel>(
+                new RelayCommand<MatchTableViewModel>(
                     RemoveMatchTable);
 
             string excelFilePath = ExcelDataLoader.LoadOrPromptExcelFilePath(settingsRoot.ExcelSettings.FileLinkSettings);
@@ -53,13 +53,13 @@ namespace Spark.Tag4D.Settings.ViewModels
         { get; }
             = new();
 
-        public DelegateCommand OpenCommand { get; }
+        public RelayCommand OpenCommand { get; }
 
-        public DelegateCommand SaveCommand { get; }
+        public RelayCommand SaveCommand { get; }
 
-        public DelegateCommand AddMatchTableCommand { get; }
+        public RelayCommand AddMatchTableCommand { get; }
 
-        public DelegateCommand<MatchTableViewModel>
+        public RelayCommand<MatchTableViewModel>
             RemoveMatchTableCommand
         { get; }
 

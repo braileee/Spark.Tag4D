@@ -1,9 +1,10 @@
-﻿using Prism.Mvvm;
+﻿using Spark.Tag4D.Core.Mvvm;
+
 using System.Collections.ObjectModel;
 
 namespace Spark.Tag4D.Settings.ViewModels.Support
 {
-    public class ComposedProperty : BindableBase
+    public class ComposedProperty : ObservableObject
     {
         private string _name = string.Empty;
         public string Name

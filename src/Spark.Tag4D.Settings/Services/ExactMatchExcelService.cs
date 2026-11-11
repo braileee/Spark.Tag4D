@@ -1,4 +1,4 @@
-﻿using Spark.Tag4D.Core.Json;
+﻿using Spark.Tag4D.Core.Configuration;
 using Spark.Tag4D.Core.Models;
 using Spark.Tag4D.Core.Utils;
 using Spark.Tag4D.Settings.Models;

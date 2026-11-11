@@ -7,6 +7,14 @@
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="800"
                x:Name="Root">
+<UserControl.Resources>
+<ResourceDictionary>
+<ResourceDictionary.MergedDictionaries>
+<ResourceDictionary Source="pack://application:,,,/Spark.Tag4D.UI;component/Themes/Tag4D.xaml"/>
+</ResourceDictionary.MergedDictionaries>
+</ResourceDictionary>
+</UserControl.Resources>
+
     <DockPanel Margin="10">
 
         <StackPanel DockPanel.Dock="Top"
@@ -16,7 +24,7 @@
                     Margin="5"
                     Command="{Binding AddComposedPropertyCommand}" />
 
-            <Button Content="Save"
+            <Button Style="{StaticResource PrimaryButton}" Content="Save"
                     Margin="5"
                     Command="{Binding SaveCommand}" />
 
@@ -32,7 +40,7 @@
                     <DataTemplate>
 
                         <Border BorderThickness="1"
-            BorderBrush="LightGray"
+            BorderBrush="{StaticResource BorderBrush}"
             Margin="3"
             Padding="4">
 
@@ -40,7 +48,7 @@
 
                                 <!-- Composed Property -->
 
-                                <Border BorderBrush="Gray"
+                                <Border BorderBrush="{StaticResource BorderBrush}"
                     BorderThickness="0,0,1,0"
                     Margin="0,0,10,0"
                     Padding="0,0,10,0">
@@ -115,7 +123,7 @@
                                          Text="{Binding Suffix,
                                                 UpdateSourceTrigger=PropertyChanged}" />
 
-                                                    <Button Content="+"
+                                                    <Button Style="{StaticResource IconButton}" Content="+"
                                                             Width="22"
                                                             Height="22"
                                                             Margin="1"
@@ -123,7 +131,7 @@
                                                                       ElementName=ComposedPropertiesControl}"
                                                             CommandParameter="{Binding}" />
 
-                                                    <Button Content="-"
+                                                    <Button Style="{StaticResource DangerIconButton}" Content="-"
                                                             Width="22"
                                                             Height="22"
                                                             Margin="1"
@@ -139,7 +147,7 @@
 
                                 </ScrollViewer>
 
-                                <Button Content="Delete"
+                                <Button Style="{StaticResource DangerButton}" Content="Delete"
                     Margin="10,0,0,0"
                     Height="22"
                     Command="{Binding DataContext.DeleteComposedPropertyCommand,

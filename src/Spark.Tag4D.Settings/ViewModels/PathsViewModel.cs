@@ -1,8 +1,8 @@
-﻿using Spark.Tag4D.Core.Json;
+using Spark.Tag4D.Core.Configuration;
 using Spark.Tag4D.Core.Models;
-using Spark.Tag4D.Core.Utils;
-using Prism.Commands;
-using Prism.Mvvm;
+using Spark.Tag4D.UI.Dialogs;
+using Spark.Tag4D.Core.Mvvm;
+
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -12,19 +12,19 @@ using System.Threading.Tasks;
 
 namespace Spark.Tag4D.Settings.ViewModels
 {
-    public class PathsViewModel : BindableBase
+    public class PathsViewModel : ObservableObject
     {
         public PathsViewModel()
         {
             SettingsFilePath = LoadSettings();
-            LoadSettingsCommand = new DelegateCommand(OnLoadSettingsCommand);
+            LoadSettingsCommand = new RelayCommand(OnLoadSettingsCommand);
             ExcelFilePath = ExcelDataLoader.LoadOrPromptExcelFilePath(SettingsRoot.ExcelSettings.FileLinkSettings);
-            LoadExcelCommand = new DelegateCommand(OnLoadExcelCommand);
+            LoadExcelCommand = new RelayCommand(OnLoadExcelCommand);
         }
 
         private void OnLoadExcelCommand()
         {
-            string excelFilePath = FilePromptUtils.GetFilePath(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "Excel files (*.xlsx)|*.xlsx");
+            string excelFilePath = FileDialogs.OpenFile(FileDialogs.ExcelFilter);
 
             if (string.IsNullOrEmpty(excelFilePath) || !File.Exists(excelFilePath))
             {
@@ -36,7 +36,7 @@ namespace Spark.Tag4D.Settings.ViewModels
 
         private void OnLoadSettingsCommand()
         {
-            string settingsFilePath = FilePromptUtils.GetFilePath(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "json files (*.json)|*.json");
+            string settingsFilePath = FileDialogs.OpenFile(FileDialogs.JsonFilter);
 
             if (string.IsNullOrEmpty(settingsFilePath) || !File.Exists(settingsFilePath))
             {
@@ -68,11 +68,11 @@ namespace Spark.Tag4D.Settings.ViewModels
             {
                 settingsFilePath = value;
                 SettingsLoader.SavePath(value);
-                RaisePropertyChanged();
+                OnPropertyChanged();
             }
         }
 
-        public DelegateCommand LoadSettingsCommand { get; }
+        public RelayCommand LoadSettingsCommand { get; }
         public string ExcelFilePath
         {
             get
@@ -83,11 +83,11 @@ namespace Spark.Tag4D.Settings.ViewModels
             {
                 excelFilePath = value;
                 ExcelDataLoader.SavePath(value);
-                RaisePropertyChanged();
+                OnPropertyChanged();
             }
         }
 
-        public DelegateCommand LoadExcelCommand { get; }
+        public RelayCommand LoadExcelCommand { get; }
         public SettingsRoot SettingsRoot { get; private set; }
 
         public event EventHandler CloseRequest;

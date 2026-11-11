@@ -1,10 +1,10 @@
 ﻿using ControlzEx.Standard;
-using Spark.Tag4D.Core.Json;
+using Spark.Tag4D.Core.Configuration;
 using Spark.Tag4D.Core.Models;
 using Spark.Tag4D.IfcValidator.Models;
 using Spark.Tag4D.IfcValidator.Utils;
-using Prism.Commands;
-using Prism.Mvvm;
+using Spark.Tag4D.Core.Mvvm;
+
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -16,7 +16,7 @@ using System.Windows.Forms;
 
 namespace Spark.Tag4D.IfcValidator.ViewModels
 {
-    public class MainViewModel : BindableBase
+    public class MainViewModel : ObservableObject
     {
         public MainViewModel()
         {
@@ -28,11 +28,11 @@ namespace Spark.Tag4D.IfcValidator.ViewModels
             IfcFolderPath = Properties.Settings.Default.IfcFolderPath;
             SettingsFilePath = SettingsLoader.GetPath();
 
-            SelectExcelCommand = new DelegateCommand(OnSelectExcelCommand);
-            SelectIfcFolderCommand = new DelegateCommand(OnSelectIfcFolderCommand);
-            SelectSettingsCommand = new DelegateCommand(OnSelectSettingsCommand);
+            SelectExcelCommand = new RelayCommand(OnSelectExcelCommand);
+            SelectIfcFolderCommand = new RelayCommand(OnSelectIfcFolderCommand);
+            SelectSettingsCommand = new RelayCommand(OnSelectSettingsCommand);
 
-            ValidateCommand = new DelegateCommand(OnValidateCommand);
+            ValidateCommand = new RelayCommand(OnValidateCommand);
         }
 
         private void OnSelectSettingsCommand()
@@ -139,7 +139,7 @@ namespace Spark.Tag4D.IfcValidator.ViewModels
                 excelFilePath = value;
                 Properties.Settings.Default.ExcelFilePath = excelFilePath;
                 Properties.Settings.Default.Save();
-                RaisePropertyChanged();
+                OnPropertyChanged();
             }
         }
 
@@ -153,7 +153,7 @@ namespace Spark.Tag4D.IfcValidator.ViewModels
                 ifcFolderPath = value;
                 Properties.Settings.Default.IfcFolderPath = ifcFolderPath;
                 Properties.Settings.Default.Save();
-                RaisePropertyChanged();
+                OnPropertyChanged();
             }
         }
 
@@ -170,12 +170,12 @@ namespace Spark.Tag4D.IfcValidator.ViewModels
                 settingsFilePath = value;
                 Properties.Settings.Default.SettingsFilePath = settingsFilePath;
                 Properties.Settings.Default.Save();
-                RaisePropertyChanged();
+                OnPropertyChanged();
             }
         }
-        public DelegateCommand SelectExcelCommand { get; }
-        public DelegateCommand SelectIfcFolderCommand { get; }
-        public DelegateCommand SelectSettingsCommand { get; }
-        public DelegateCommand ValidateCommand { get; }
+        public RelayCommand SelectExcelCommand { get; }
+        public RelayCommand SelectIfcFolderCommand { get; }
+        public RelayCommand SelectSettingsCommand { get; }
+        public RelayCommand ValidateCommand { get; }
     }
 }

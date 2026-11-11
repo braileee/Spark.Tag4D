@@ -1,13 +1,13 @@
 ﻿using Spark.Tag4D.Settings.Models;
-using Prism.Commands;
-using Prism.Mvvm;
+using Spark.Tag4D.Core.Mvvm;
+
 using System;
 using System.Collections.ObjectModel;
 using System.Linq;
 
 namespace Spark.Tag4D.Settings.ViewModels.Support
 {
-    public class MatchTableViewModel : BindableBase
+    public class MatchTableViewModel : ObservableObject
     {
         private readonly Action _markDirty;
 
@@ -19,17 +19,17 @@ namespace Spark.Tag4D.Settings.ViewModels.Support
             _markDirty = markDirty;
 
             AddRowCommand =
-                new DelegateCommand(AddRow);
+                new RelayCommand(AddRow);
 
             RemoveRowCommand =
-                new DelegateCommand<MatchRowViewModel>(
+                new RelayCommand<MatchRowViewModel>(
                     RemoveRow);
 
             AddSourcePropertyCommand =
-                new DelegateCommand(AddSourceProperty);
+                new RelayCommand(AddSourceProperty);
 
             RemoveSourcePropertyCommand =
-                new DelegateCommand<MatchPropertyViewModel>(
+                new RelayCommand<MatchPropertyViewModel>(
                     RemoveSourceProperty);
         }
 
@@ -72,15 +72,15 @@ namespace Spark.Tag4D.Settings.ViewModels.Support
             }
         }
 
-        public DelegateCommand AddRowCommand { get; }
+        public RelayCommand AddRowCommand { get; }
 
-        public DelegateCommand<MatchRowViewModel>
+        public RelayCommand<MatchRowViewModel>
             RemoveRowCommand
         { get; }
 
-        public DelegateCommand AddSourcePropertyCommand { get; }
+        public RelayCommand AddSourcePropertyCommand { get; }
 
-        public DelegateCommand<MatchPropertyViewModel>
+        public RelayCommand<MatchPropertyViewModel>
             RemoveSourcePropertyCommand
         { get; }
 

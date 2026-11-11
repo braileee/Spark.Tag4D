@@ -1,10 +1,10 @@
-﻿using Spark.Tag4D.Core.Json;
+﻿using Spark.Tag4D.Core.Configuration;
 using Spark.Tag4D.Core.Models;
 using Spark.Tag4D.Settings.Models;
 using Spark.Tag4D.Settings.Services;
 using Spark.Tag4D.Settings.ViewModels.Support;
-using Prism.Commands;
-using Prism.Mvvm;
+using Spark.Tag4D.Core.Mvvm;
+
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -16,7 +16,7 @@ using System.Windows;
 
 namespace Spark.Tag4D.Settings.ViewModels
 {
-    public class ExactMatchesViewModel : BindableBase
+    public class ExactMatchesViewModel : ObservableObject
     {
         private readonly ExactMatchExcelService _excelService;
         private readonly IDialogService _dialogService;
@@ -29,13 +29,13 @@ namespace Spark.Tag4D.Settings.ViewModels
             _dialogService = new DialogService();
 
             SaveCommand =
-                new DelegateCommand(Save);
+                new RelayCommand(Save);
 
             AddTableCommand =
-                new DelegateCommand(AddTable);
+                new RelayCommand(AddTable);
 
             RemoveTableCommand =
-                new DelegateCommand<ExactMatchTableViewModel>(
+                new RelayCommand<ExactMatchTableViewModel>(
                     RemoveTable);
             SettingsRoot = settingsRoot;
 
@@ -49,11 +49,11 @@ namespace Spark.Tag4D.Settings.ViewModels
         { get; } = new();
 
 
-        public DelegateCommand SaveCommand { get; }
+        public RelayCommand SaveCommand { get; }
 
-        public DelegateCommand AddTableCommand { get; }
+        public RelayCommand AddTableCommand { get; }
 
-        public DelegateCommand<ExactMatchTableViewModel> RemoveTableCommand { get; }
+        public RelayCommand<ExactMatchTableViewModel> RemoveTableCommand { get; }
 
         private bool _isDirty;
 
@@ -64,7 +64,7 @@ namespace Spark.Tag4D.Settings.ViewModels
             {
                 if (SetProperty(ref _isDirty, value))
                 {
-                    RaisePropertyChanged(nameof(WindowTitle));
+                    OnPropertyChanged(nameof(WindowTitle));
                 }
             }
         }

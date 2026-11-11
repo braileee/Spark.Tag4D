@@ -1,4 +1,4 @@
-﻿using Spark.Tag4D.Settings.ViewModels;
+using Spark.Tag4D.Settings.ViewModels;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -46,7 +46,7 @@ namespace Spark.Tag4D.Settings.Views
 
                 if (result == MessageBoxResult.Yes)
                 {
-                    settingsViewModel.PropertiesViewModel.SaveCommand.Execute();
+                    settingsViewModel.PropertiesViewModel.SaveCommand.Execute(null);
                 }
                 else if (result == MessageBoxResult.Cancel)
                 {

@@ -1,8 +1,9 @@
-﻿using Prism.Mvvm;
+﻿using Spark.Tag4D.Core.Mvvm;
+
 
 namespace Spark.Tag4D.Settings.ViewModels.Support
 {
-    public class FormulaSegment : BindableBase
+    public class FormulaSegment : ObservableObject
     {
         private string _prefix = string.Empty;
         public string Prefix

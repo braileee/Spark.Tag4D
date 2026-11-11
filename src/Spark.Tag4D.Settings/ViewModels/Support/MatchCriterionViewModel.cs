@@ -1,9 +1,10 @@
-﻿using Prism.Mvvm;
+﻿using Spark.Tag4D.Core.Mvvm;
+
 using System;
 
 namespace Spark.Tag4D.Settings.ViewModels.Support
 {
-    public class MatchCriterionViewModel : BindableBase
+    public class MatchCriterionViewModel : ObservableObject
     {
         private readonly Action _markDirty;
 

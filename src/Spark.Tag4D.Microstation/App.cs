@@ -2,7 +2,7 @@
 using Bentley.DgnPlatformNET.Elements;
 using Bentley.MstnPlatformNET;
 using Spark.Tag4D.Core;
-using Spark.Tag4D.Core.Json;
+using Spark.Tag4D.Core.Configuration;
 using Spark.Tag4D.Core.Models;
 using Spark.Tag4D.Core.Utils;
 using Spark.Tag4D.Microstation.Models;

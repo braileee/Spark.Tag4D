@@ -1,8 +1,8 @@
-﻿using Spark.Tag4D.Core.Json;
+﻿using Spark.Tag4D.Core.Configuration;
 using Spark.Tag4D.Core.Models;
 using Spark.Tag4D.Settings.ViewModels.Support;
-using Prism.Commands;
-using Prism.Mvvm;
+using Spark.Tag4D.Core.Mvvm;
+
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -10,7 +10,7 @@ using System.Xml.Linq;
 
 namespace Spark.Tag4D.Settings.ViewModels
 {
-    public class ExpressionEditorViewModel : BindableBase
+    public class ExpressionEditorViewModel : ObservableObject
     {
 
         public ObservableCollection<ExpressionRuleViewModel> Rules { get; }
@@ -27,11 +27,11 @@ namespace Spark.Tag4D.Settings.ViewModels
             set => SetProperty(ref _selectedRule, value);
         }
 
-        public DelegateCommand AddRowCommand { get; }
+        public RelayCommand AddRowCommand { get; }
 
-        public DelegateCommand DeleteRowCommand { get; }
+        public RelayCommand DeleteRowCommand { get; }
 
-        public DelegateCommand SaveCommand { get; }
+        public RelayCommand SaveCommand { get; }
         public string ExcelFilePath { get; }
         public SettingsRoot SettingsRoot { get; set; }
 
@@ -48,9 +48,9 @@ namespace Spark.Tag4D.Settings.ViewModels
                 AvailableProperties.Add(property);
             }
 
-            AddRowCommand = new DelegateCommand(AddRow);
-            DeleteRowCommand = new DelegateCommand(DeleteRow);
-            SaveCommand = new DelegateCommand(Save);
+            AddRowCommand = new RelayCommand(AddRow);
+            DeleteRowCommand = new RelayCommand(DeleteRow);
+            SaveCommand = new RelayCommand(Save);
 
             LoadRules();
         }

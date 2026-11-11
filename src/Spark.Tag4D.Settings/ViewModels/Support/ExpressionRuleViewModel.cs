@@ -1,9 +1,10 @@
-﻿using Spark.Tag4D.Core.Models;
-using Prism.Mvvm;
+﻿using Spark.Tag4D.Core.Mvvm;
+using Spark.Tag4D.Core.Models;
+
 
 namespace Spark.Tag4D.Settings.ViewModels.Support
 {
-    public class ExpressionRuleViewModel : BindableBase
+    public class ExpressionRuleViewModel : ObservableObject
     {
         private string _sourcePropertyName = string.Empty;
         public string SourcePropertyName
