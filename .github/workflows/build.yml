@@ -1,0 +1,279 @@
+name: Build
+
+# main     - released code. Pushing a tag "vX.Y.Z" on main builds the two installers and publishes a GitHub release.
+# develop  - integration branch. Every push is built and tested; installers are produced as workflow artifacts only
+#            when the workflow is started manually (workflow_dispatch).
+on:
+  push:
+    branches: [main, develop]
+    tags: ['v*']
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+    inputs:
+      build_installers:
+        description: Also build the installers (as workflow artifacts, no release)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  CONFIGURATION: Release
+
+jobs:
+  # ------------------------------------------------------------------------------------------------
+  # Resolve the version once; every other job uses the same value.
+  # ------------------------------------------------------------------------------------------------
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.resolve.outputs.version }}
+      is_release: ${{ steps.resolve.outputs.is_release }}
+      build_installers: ${{ steps.resolve.outputs.build_installers }}
+    steps:
+      - id: resolve
+        shell: bash
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            version="${GITHUB_REF_NAME#v}"
+            is_release=true
+            build_installers=true
+            if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              echo "::error::Tag '$GITHUB_REF_NAME' must look like v1.2.3 (MSI versions are numeric)."
+              exit 1
+            fi
+          else
+            version="1.0.${GITHUB_RUN_NUMBER}"
+            is_release=false
+            build_installers="${{ inputs.build_installers || 'false' }}"
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "is_release=$is_release" >> "$GITHUB_OUTPUT"
+          echo "build_installers=$build_installers" >> "$GITHUB_OUTPUT"
+          echo "Version: $version (release: $is_release, installers: $build_installers)"
+
+  # ------------------------------------------------------------------------------------------------
+  # A release tag must point at a commit that is on main.
+  # ------------------------------------------------------------------------------------------------
+  verify-tag-on-main:
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Tag must be on main
+        shell: bash
+        run: |
+          git fetch origin main
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "::error::Tag $GITHUB_REF_NAME ($GITHUB_SHA) is not on the main branch. Merge to main first, then tag."
+            exit 1
+          fi
+
+  # ------------------------------------------------------------------------------------------------
+  # Unit tests (core library: spreadsheets, expressions, settings, MVVM).
+  # ------------------------------------------------------------------------------------------------
+  test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+      - name: Test
+        run: dotnet test tests/Spark.Tag4D.Core.Tests -c $env:CONFIGURATION --logger "trx;LogFileName=core-tests.trx"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: '**/core-tests.trx'
+          if-no-files-found: ignore
+
+  # ------------------------------------------------------------------------------------------------
+  # IFC validator (self-contained, so it runs without a .NET installation). Bundled into both installers.
+  # ------------------------------------------------------------------------------------------------
+  validator:
+    needs: version
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+      - name: Publish IFC validator
+        run: >
+          dotnet publish src/Spark.Tag4D.IfcValidator -c $env:CONFIGURATION -r win-x64 --self-contained true
+          -p:Version=${{ needs.version.outputs.version }} -o artifacts/package/validator
+      - uses: actions/upload-artifact@v4
+        with:
+          name: validator
+          path: artifacts/package/validator
+          if-no-files-found: error
+
+  # ------------------------------------------------------------------------------------------------
+  # Revit add-in, one build per supported Revit release (the Revit API differs per release).
+  # ------------------------------------------------------------------------------------------------
+  revit:
+    needs: version
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        revit: ['2023', '2024', '2025', '2026']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+      - name: Build Revit ${{ matrix.revit }}
+        run: >
+          dotnet build src/Spark.Tag4D.Revit -c $env:CONFIGURATION
+          -p:RevitVersion=${{ matrix.revit }} -p:Version=${{ needs.version.outputs.version }}
+      - name: Stage Revit ${{ matrix.revit }}
+        shell: pwsh
+        run: |
+          $source = "artifacts/bin/Spark.Tag4D.Revit/release_revit${{ matrix.revit }}"
+          $target = "artifacts/package/revit/${{ matrix.revit }}"
+          New-Item -ItemType Directory -Force -Path $target | Out-Null
+          Copy-Item "$source/*" $target -Recurse -Force -Exclude *.pdb
+          if (-not (Test-Path "$target/Spark.Tag4D.Revit.addin")) { throw "Add-in manifest missing from $target" }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: revit-${{ matrix.revit }}
+          path: artifacts/package/revit/${{ matrix.revit }}
+          if-no-files-found: error
+
+  # ------------------------------------------------------------------------------------------------
+  # MicroStation add-in. MicroStation's assemblies cannot be restored from NuGet and are licensed, so they are
+  # downloaded from a private location configured in the repository secret MICROSTATION_ASSEMBLIES_URL:
+  # a zip that mirrors "C:\Program Files\Bentley\MicroStation 2025\MicroStation".
+  # ------------------------------------------------------------------------------------------------
+  microstation:
+    needs: version
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+      - name: Fetch MicroStation assemblies
+        id: fetch
+        shell: pwsh
+        env:
+          MICROSTATION_ASSEMBLIES_URL: ${{ secrets.MICROSTATION_ASSEMBLIES_URL }}
+          INSTALLER_REQUIRED: ${{ needs.version.outputs.build_installers }}
+        run: |
+          if (-not $env:MICROSTATION_ASSEMBLIES_URL) {
+            if ($env:INSTALLER_REQUIRED -eq 'true') {
+              throw "Repository secret MICROSTATION_ASSEMBLIES_URL is not set. It must point to a zip of the MicroStation 2025 program folder."
+            }
+            Write-Host "::notice::MICROSTATION_ASSEMBLIES_URL is not set - the MicroStation add-in is not built in this run."
+            "available=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+            return
+          }
+          $zip = Join-Path $env:RUNNER_TEMP "mstn.zip"
+          Invoke-WebRequest -Uri $env:MICROSTATION_ASSEMBLIES_URL -OutFile $zip
+          $dir = Join-Path $env:RUNNER_TEMP "mstn"
+          Expand-Archive $zip $dir -Force
+          "MICROSTATION_DIR=$dir" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "available=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+      - name: Build MicroStation add-in
+        if: steps.fetch.outputs.available == 'true'
+        run: >
+          dotnet build src/Spark.Tag4D.Microstation -c $env:CONFIGURATION
+          -p:MicroStationDir="$env:MICROSTATION_DIR" -p:Version=${{ needs.version.outputs.version }}
+      - uses: actions/upload-artifact@v4
+        if: steps.fetch.outputs.available == 'true'
+        with:
+          name: microstation
+          path: artifacts/package/Spark.Tag4D.Microstation
+          if-no-files-found: error
+
+  # ------------------------------------------------------------------------------------------------
+  # Installers: exactly two MSIs - one for Revit (all supported releases), one for MicroStation.
+  # Each contains the IFC validator. Built for release tags (on main) and on demand.
+  # ------------------------------------------------------------------------------------------------
+  installers:
+    needs: [version, test, validator, revit, microstation, verify-tag-on-main]
+    # verify-tag-on-main is skipped for non-tag runs, so only fail when something actually failed.
+    if: ${{ !cancelled() && !failure() && needs.version.outputs.build_installers == 'true' }}
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Download build outputs
+        uses: actions/download-artifact@v4
+        with:
+          path: downloads
+
+      - name: Arrange payloads
+        shell: pwsh
+        run: |
+          foreach ($year in '2023', '2024', '2025', '2026') {
+            New-Item -ItemType Directory -Force -Path "payload/revit/$year" | Out-Null
+            Copy-Item "downloads/revit-$year/*" "payload/revit/$year" -Recurse -Force
+          }
+          Copy-Item downloads/microstation payload/microstation -Recurse -Force
+          Copy-Item downloads/validator payload/validator -Recurse -Force
+
+      - name: Install WiX toolset
+        shell: pwsh
+        run: |
+          dotnet tool install --global wix --version 4.0.4
+          "$env:USERPROFILE\.dotnet\tools" | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+          & "$env:USERPROFILE\.dotnet\tools\wix.exe" extension add -g WixToolset.UI.wixext/4.0.4
+          & "$env:USERPROFILE\.dotnet\tools\wix.exe" extension add -g WixToolset.Util.wixext/4.0.4
+
+      - name: Build installers
+        shell: pwsh
+        run: |
+          $version = "${{ needs.version.outputs.version }}"
+          foreach ($product in 'revit', 'microstation') {
+            dotnet run --project installers/Spark.Tag4D.Setup -c $env:CONFIGURATION -- `
+              --product $product --version $version `
+              --payload "payload/$product" --validator payload/validator --output artifacts/installers
+            if ($LASTEXITCODE -ne 0) { throw "Building the $product installer failed." }
+          }
+          $msi = Get-ChildItem artifacts/installers -Filter *.msi
+          if ($msi.Count -ne 2) { throw "Expected exactly two installers, found $($msi.Count)." }
+          $msi | ForEach-Object { Write-Host "$($_.Name)  $([math]::Round($_.Length / 1MB, 1)) MB" }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: installers
+          path: artifacts/installers/*.msi
+          if-no-files-found: error
+
+  # ------------------------------------------------------------------------------------------------
+  # Publish the two installers on the GitHub release that belongs to the tag.
+  # ------------------------------------------------------------------------------------------------
+  release:
+    needs: [version, installers]
+    if: needs.version.outputs.is_release == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: installers
+          path: installers
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >
+          gh release create "$GITHUB_REF_NAME" installers/*.msi
+          --repo "$GITHUB_REPOSITORY" --title "Spark.Tag4D $GITHUB_REF_NAME" --generate-notes

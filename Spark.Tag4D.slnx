@@ -1,0 +1,30 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path=".editorconfig" />
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Packages.props" />
+    <File Path="build/Revit.props" />
+    <File Path=".github/workflows/build.yml" />
+    <File Path="README.md" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/Spark.Tag4D.Core/Spark.Tag4D.Core.csproj" />
+    <Project Path="src/Spark.Tag4D.UI/Spark.Tag4D.UI.csproj" />
+    <Project Path="src/Spark.Tag4D.Settings/Spark.Tag4D.Settings.csproj" />
+    <Project Path="src/Spark.Tag4D.IfcValidator/Spark.Tag4D.IfcValidator.csproj" />
+  </Folder>
+  <Folder Name="/src/Revit/">
+    <Project Path="src/Spark.Tag4D.Revit.Core/Spark.Tag4D.Revit.Core.csproj" />
+    <Project Path="src/Spark.Tag4D.Revit.App/Spark.Tag4D.Revit.App.csproj" />
+    <Project Path="src/Spark.Tag4D.Revit/Spark.Tag4D.Revit.csproj" />
+  </Folder>
+  <Folder Name="/src/MicroStation/">
+    <Project Path="src/Spark.Tag4D.Microstation/Spark.Tag4D.Microstation.csproj" />
+  </Folder>
+  <Folder Name="/installers/">
+    <Project Path="installers/Spark.Tag4D.Setup/Spark.Tag4D.Setup.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Spark.Tag4D.Core.Tests/Spark.Tag4D.Core.Tests.csproj" />
+  </Folder>
+</Solution>

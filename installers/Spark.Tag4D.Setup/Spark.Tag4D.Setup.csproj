@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Builds the two MSI installers (Revit, MicroStation). Run by CI, see .github/workflows/build.yml:
+        dotnet run, with the Setup project and the arguments listed in SetupOptions.Usage
+    WixSharp is build tooling only; nothing from it ships inside the installed product.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Spark.Tag4D.Setup</RootNamespace>
+    <AssemblyName>Spark.Tag4D.Setup</AssemblyName>
+    <NoWarn>$(NoWarn);NU1701;NU1702</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="WixSharp.Core" />
+  </ItemGroup>
+
+</Project>

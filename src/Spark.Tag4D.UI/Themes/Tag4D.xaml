@@ -299,6 +299,22 @@
         </Border>
     </ControlTemplate>
 
+    <!-- Borderless text box used inside editable ComboBoxes (the combo draws the chrome). -->
+    <Style x:Key="ComboEditableTextBox" TargetType="TextBox">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="MinHeight" Value="0"/>
+        <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+        <Setter Property="SelectionBrush" Value="{StaticResource AccentBrush}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="TextBox">
+                    <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" VerticalAlignment="Center"/>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <Style TargetType="ComboBoxItem">
         <Setter Property="Padding" Value="10,6"/>
         <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
@@ -353,10 +369,9 @@
                                           Margin="{TemplateBinding Padding}"
                                           VerticalAlignment="Center" HorizontalAlignment="Left"/>
                         <TextBox x:Name="PART_EditableTextBox"
+                                 Style="{StaticResource ComboEditableTextBox}"
                                  Visibility="Hidden"
                                  Focusable="True"
-                                 Background="Transparent"
-                                 BorderThickness="0"
                                  Margin="1,1,26,1"
                                  Padding="{TemplateBinding Padding}"
                                  IsReadOnly="{Binding IsReadOnly, RelativeSource={RelativeSource TemplatedParent}}"/>
