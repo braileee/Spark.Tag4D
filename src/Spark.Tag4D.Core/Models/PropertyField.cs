@@ -1,234 +1,203 @@
-﻿using Spark.Tag4D.Core.Models;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.ComponentModel;
 using System.Linq;
-using System.Runtime.CompilerServices;
-using static NPOI.HSSF.UserModel.HeaderFooter;
+using Spark.Tag4D.Core.Mvvm;
 
-
-public enum EditorType
+namespace Spark.Tag4D.Core.Models
 {
-    String,
-    Double,
-    Int,
-    Bool,
-    Combo
-}
-
-public class PropertyField : INotifyPropertyChanged
-{
-    public string Name { get; }
-    public string DataType { get; }
-
-    public EditorType EditorType { get; }
-
-    public ObservableCollection<string> LookupValues { get; set; } = new ObservableCollection<string>();
-    public ObservableCollection<string> SourceLookupValues { get; }
-
-    private object _value;
-    public object Value
+    public enum EditorType
     {
-        get => _value;
-        set
-        {
-            _value = value;
-            Changed = true;
-            OnPropertyChanged();
-        }
+        String,
+        Double,
+        Int,
+        Bool,
+        Combo
     }
 
-    private bool changed;
-
-    public bool Changed
+    /// <summary>An editable property shown in the tagging pane.</summary>
+    public sealed class PropertyField : ObservableObject
     {
-        get { return changed; }
-        set
+        private object? _value;
+        private bool _changed;
+        private bool _canBeEdited = true;
+        private bool _isReadOnly;
+
+        public PropertyField(string name, string dataType, IEnumerable<string>? lookupValues = null)
         {
-            changed = value;
-            OnPropertyChanged();
-        }
-    }
+            Name = name;
+            DataType = dataType;
 
-    private bool canBeEdited;
-
-    public bool CanBeEdited
-    {
-        get { return canBeEdited; }
-        set
-        {
-            canBeEdited = value;
-            OnPropertyChanged();
-        }
-    }
-
-    private bool isReadOnly;
-
-    public bool IsReadOnly
-    {
-        get { return isReadOnly; }
-        set
-        {
-            isReadOnly = value;
-            OnPropertyChanged();
-        }
-    }
-
-    public PropertyField(
-        string name,
-        string dataType,
-        IEnumerable<string> lookupValues = null)
-    {
-        Name = name;
-        DataType = dataType;
-
-        LookupValues = lookupValues != null
-            ? new ObservableCollection<string>(lookupValues)
-            : null;
-
-        SourceLookupValues = lookupValues != null
-            ? new ObservableCollection<string>(lookupValues)
-            : null;
-
-        EditorType = ResolveEditorType(dataType, lookupValues);
-
-        CanBeEdited = true;
-        IsReadOnly = false;
-    }
-
-    private static EditorType ResolveEditorType(string dataType, IEnumerable<string> lookup)
-    {
-        if (lookup != null)
-            return EditorType.Combo;
-
-        switch (dataType.ToLower())
-        {
-            case "bool":
-                return EditorType.Bool;
-
-            case "int":
-                return EditorType.Int;
-
-            case "double":
-                return EditorType.Double;
-
-            case "string":
-                return EditorType.String;
-
-            default:
-                return EditorType.String;
-        }
-    }
-
-    public static void ReloadChangedFields(
-    PropertyField changedField,
-    ObservableCollection<PropertyField> fields,
-    List<PropertyValueMatch> propertyValueMatches)
-    {
-        if (changedField is null)
-            return;
-
-        // Cache matches that depend on the changed field
-        var sourceMatches = propertyValueMatches
-            .Where(m => m.PropertyNameAndValuesSource.ContainsKey(changedField.Name))
-            .ToList();
-
-        if (sourceMatches.Count == 0)
-            return;
-
-        // Use HashSet for O(1) lookups
-        var targetPropertyNames = new HashSet<string>(
-            sourceMatches.Select(m => m.PropertyNameTarget));
-
-        // Cache dictionary for fast field lookup
-        var fieldsByName = fields.ToDictionary(f => f.Name, f => f);
-
-        foreach (var field in fields)
-        {
-            if (field.LookupValues == null || field.Name == changedField.Name)
-                continue;
-
-            // Reset values if empty
-            if (field.LookupValues.Count == 0)
+            if (lookupValues != null)
             {
-                field.LookupValues.AddRange(field.SourceLookupValues);
-                continue;
+                List<string> values = lookupValues.ToList();
+                LookupValues = new ObservableCollection<string>(values);
+                SourceLookupValues = new ObservableCollection<string>(values);
             }
 
-            // Skip non-target fields
-            if (!targetPropertyNames.Contains(field.Name))
-                continue;
+            EditorType = ResolveEditorType(dataType, lookupValues);
+        }
 
-            // Matches that target this field
-            var currentFieldMatches = sourceMatches
-                .Where(m => m.PropertyNameTarget == field.Name)
+        public string Name { get; }
+
+        public string DataType { get; }
+
+        public EditorType EditorType { get; }
+
+        /// <summary>Values currently offered by the combo box (narrowed down by matching rules).</summary>
+        public ObservableCollection<string>? LookupValues { get; }
+
+        /// <summary>The complete, unfiltered picklist.</summary>
+        public ObservableCollection<string>? SourceLookupValues { get; }
+
+        public object? Value
+        {
+            get => _value;
+            set
+            {
+                _value = value;
+                Changed = true;
+                OnPropertyChanged();
+            }
+        }
+
+        public bool Changed
+        {
+            get => _changed;
+            set => SetProperty(ref _changed, value);
+        }
+
+        public bool CanBeEdited
+        {
+            get => _canBeEdited;
+            set => SetProperty(ref _canBeEdited, value);
+        }
+
+        public bool IsReadOnly
+        {
+            get => _isReadOnly;
+            set => SetProperty(ref _isReadOnly, value);
+        }
+
+        /// <summary>
+        /// Narrows the picklists of the target fields after <paramref name="changedField"/> was edited,
+        /// according to the match tables.
+        /// </summary>
+        public static void ReloadChangedFields(
+            PropertyField? changedField,
+            ObservableCollection<PropertyField> fields,
+            List<PropertyValueMatch> propertyValueMatches)
+        {
+            if (changedField is null)
+            {
+                return;
+            }
+
+            List<PropertyValueMatch> sourceMatches = propertyValueMatches
+                .Where(match => match.PropertyNameAndValuesSource.ContainsKey(changedField.Name))
                 .ToList();
 
-            var lookupFields = new Dictionary<string, string>();
+            if (sourceMatches.Count == 0)
+            {
+                return;
+            }
+
+            var targetPropertyNames = new HashSet<string>(sourceMatches.Select(match => match.PropertyNameTarget));
+            Dictionary<string, PropertyField> fieldsByName = fields.GroupBy(f => f.Name).ToDictionary(g => g.Key, g => g.First());
+
+            foreach (PropertyField field in fields)
+            {
+                if (field.LookupValues == null || field.SourceLookupValues == null || field.Name == changedField.Name)
+                {
+                    continue;
+                }
+
+                if (field.LookupValues.Count == 0)
+                {
+                    field.LookupValues.AddRange(field.SourceLookupValues);
+                    continue;
+                }
+
+                if (!targetPropertyNames.Contains(field.Name))
+                {
+                    continue;
+                }
+
+                field.NarrowLookup(sourceMatches.Where(match => match.PropertyNameTarget == field.Name).ToList(), fieldsByName);
+            }
+        }
+
+        private void NarrowLookup(List<PropertyValueMatch> matches, Dictionary<string, PropertyField> fieldsByName)
+        {
+            var criteria = new Dictionary<string, string>();
             bool anyMatchValid = false;
 
-            foreach (var match in currentFieldMatches)
+            foreach (PropertyValueMatch match in matches)
             {
                 bool isMatch = true;
 
-                foreach (var kvp in match.PropertyNameAndValuesSource)
+                foreach (KeyValuePair<string, string> source in match.PropertyNameAndValuesSource)
                 {
-                    if (!fieldsByName.TryGetValue(kvp.Key, out var sourceField))
+                    if (!fieldsByName.TryGetValue(source.Key, out PropertyField? sourceField)
+                        || !string.Equals(sourceField.Value?.ToString(), source.Value, StringComparison.Ordinal))
                     {
                         isMatch = false;
                         break;
                     }
 
-                    if (!Equals(sourceField.Value?.ToString(), kvp.Value))
-                    {
-                        isMatch = false;
-                        break;
-                    }
-
-                    lookupFields[kvp.Key] = kvp.Value;
+                    criteria[source.Key] = source.Value;
                 }
 
-                if (isMatch)
-                    anyMatchValid = true;
+                anyMatchValid |= isMatch;
             }
 
-            // No valid matches → keep original lookups
             if (!anyMatchValid)
             {
-                if (field.LookupValues.Count != field.SourceLookupValues.Count ||
-                   !field.LookupValues.SequenceEqual(field.SourceLookupValues))
+                if (!LookupValues!.SequenceEqual(SourceLookupValues!))
                 {
-                    field.LookupValues.Clear();
-                    field.LookupValues.AddRange(field.SourceLookupValues.ToList());
+                    Replace(LookupValues!, SourceLookupValues!.ToList());
                 }
 
-                continue;
+                return;
             }
 
-            // Filter matches by the lookupFields criteria
-            var currentMatches = currentFieldMatches
-                .Where(m =>
-                    m.PropertyNameAndValuesSource.Count == lookupFields.Count &&
-                    !m.PropertyNameAndValuesSource.Except(lookupFields).Any())
+            List<string> targetValues = matches
+                .Where(match => match.PropertyNameAndValuesSource.Count == criteria.Count
+                                && !match.PropertyNameAndValuesSource.Except(criteria).Any())
+                .Select(match => match.PropertyValueTarget)
                 .ToList();
 
-            var targetValues = currentMatches
-                .Select(m => m.PropertyValueTarget)
-                .ToList();
-
-            var lookupValues = (targetValues.Count > 0)
-                ? targetValues
-                : field.SourceLookupValues.ToList();
-
-            if (lookupValues.Count > 0)
+            List<string> lookup = targetValues.Count > 0 ? targetValues : SourceLookupValues!.ToList();
+            if (lookup.Count > 0)
             {
-                field.LookupValues.Clear();
-                field.LookupValues.AddRange(lookupValues);
+                Replace(LookupValues!, lookup);
+            }
+        }
+
+        private static void Replace(ObservableCollection<string> target, IEnumerable<string> values)
+        {
+            target.Clear();
+            target.AddRange(values);
+        }
+
+        private static EditorType ResolveEditorType(string dataType, IEnumerable<string>? lookup)
+        {
+            if (lookup != null)
+            {
+                return EditorType.Combo;
+            }
+
+            switch ((dataType ?? string.Empty).ToLowerInvariant())
+            {
+                case "bool":
+                    return EditorType.Bool;
+                case "int":
+                    return EditorType.Int;
+                case "double":
+                    return EditorType.Double;
+                default:
+                    return EditorType.String;
             }
         }
     }
-
-    public event PropertyChangedEventHandler PropertyChanged;
-    private void OnPropertyChanged([CallerMemberName] string name = null)
-        => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 }

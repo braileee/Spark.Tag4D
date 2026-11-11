@@ -1,0 +1,34 @@
+<Project>
+
+  <!--
+    Shared settings for every project that is compiled against a specific Revit release.
+    Select the release with:  dotnet build -p:RevitVersion=2025
+    Revit 2025+ runs on .NET 8, earlier releases on .NET Framework 4.8.
+  -->
+  <PropertyGroup>
+    <RevitVersion Condition="'$(RevitVersion)' == ''">2025</RevitVersion>
+    <TargetFramework Condition="$([System.Int32]::Parse('$(RevitVersion)')) &gt;= 2025">net8.0-windows</TargetFramework>
+    <TargetFramework Condition="$([System.Int32]::Parse('$(RevitVersion)')) &lt; 2025">net48</TargetFramework>
+    <DefineConstants>$(DefineConstants);REVIT$(RevitVersion)</DefineConstants>
+    <ArtifactsPivots>$(Configuration.ToLowerInvariant())_revit$(RevitVersion)</ArtifactsPivots>
+  </PropertyGroup>
+
+  <!-- Revit API reference (compile-time only; Revit supplies the assemblies at run time). -->
+  <ItemGroup>
+    <PackageReference Include="Revit_All_Main_Versions_API_x64" VersionOverride="$(RevitApiPackageVersion)" IncludeAssets="compile" PrivateAssets="all" />
+  </ItemGroup>
+
+  <PropertyGroup Condition="'$(RevitVersion)' == '2023'">
+    <RevitApiPackageVersion>2023.0.0</RevitApiPackageVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(RevitVersion)' == '2024'">
+    <RevitApiPackageVersion>2024.2.0</RevitApiPackageVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(RevitVersion)' == '2025'">
+    <RevitApiPackageVersion>2025.0.0</RevitApiPackageVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(RevitVersion)' == '2026'">
+    <RevitApiPackageVersion>2026.0.0</RevitApiPackageVersion>
+  </PropertyGroup>
+
+</Project>

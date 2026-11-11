@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Spark.Tag4D.Revit.App
+namespace Spark.Tag4D.Revit.Core
 {
     public static class ElementExtensions
     {

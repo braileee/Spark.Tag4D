@@ -1,482 +1,346 @@
-﻿using Spark.Tag4D.Core.Enums;
-using Spark.Tag4D.Core.Json;
-using Spark.Tag4D.Core.Utils;
-using Spark.Tag4D.Core.Models;
-using Spark.Tag4D.Core.Utils;
-using NPOI.SS.UserModel;
-using NPOI.Util.Collections;
-using NPOI.XSSF.UserModel;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Spark.Tag4D.Core.Configuration;
+using Spark.Tag4D.Core.Spreadsheets;
+using Spark.Tag4D.Core.Utils;
 
 namespace Spark.Tag4D.Core.Models
 {
+    /// <summary>Reads and writes the sheets of the parameters workbook.</summary>
     public static class ExcelDataLoader
     {
+        // ----- Properties ---------------------------------------------------------------------------------------
+
         public static List<PropertySetItem> LoadPropertySetItems(string filePath, PropertiesSheet settings)
         {
+            Worksheet? sheet = Workbook.Open(filePath).FindSheet(settings.SheetName);
+            if (sheet == null)
+            {
+                return new List<PropertySetItem>();
+            }
+
+            int columnSet = FindColumn(sheet, settings.HeaderRowIndex, settings.PropertySetNameColumn);
+            int columnName = FindColumn(sheet, settings.HeaderRowIndex, settings.PropertyNameColumn);
+            int columnType = FindColumn(sheet, settings.HeaderRowIndex, settings.DataTypeColumn);
+
             var rows = new List<PropertyDataRow>();
 
-            using (var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read))
+            for (int row = settings.HeaderRowIndex + 1; row < sheet.RowCount; row++)
             {
-                IWorkbook workbook = new XSSFWorkbook(fs);
-                ISheet sheet = workbook.GetSheet(settings.SheetName);
-
-                if (sheet == null)
+                var item = new PropertyDataRow
                 {
-                    return new List<PropertySetItem>();
-                }
+                    PropertySetName = Cell(sheet, row, columnSet),
+                    PropertyName = Cell(sheet, row, columnName),
+                    DataType = Cell(sheet, row, columnType)
+                };
 
-                // Assuming first row is header
-                int headerRowIndex = settings.HeaderRowIndex;
-                IRow headerRow = sheet.GetRow(headerRowIndex);
-
-                int colSet = headerRow.Cells.FindIndex(c => c.StringCellValue == settings.PropertySetNameColumn);
-                int colName = headerRow.Cells.FindIndex(c => c.StringCellValue == settings.PropertyNameColumn);
-                int colType = headerRow.Cells.FindIndex(c => c.StringCellValue == settings.DataTypeColumn);
-
-                for (int i = headerRowIndex + 1; i <= sheet.LastRowNum; i++)
+                if (!string.IsNullOrWhiteSpace(item.PropertySetName) || !string.IsNullOrWhiteSpace(item.PropertyName))
                 {
-                    IRow row = sheet.GetRow(i);
-                    if (row == null) continue;
-
-                    var item = new PropertyDataRow
-                    {
-                        PropertySetName = row.GetCell(colSet)?.ToString()?.Trim(),
-                        PropertyName = row.GetCell(colName)?.ToString()?.Trim(),
-                        DataType = row.GetCell(colType)?.ToString()?.Trim()
-                    };
-
-                    // Skip empty rows
-                    if (string.IsNullOrWhiteSpace(item.PropertySetName) &&
-                        string.IsNullOrWhiteSpace(item.PropertyName))
-                        continue;
-
                     rows.Add(item);
                 }
             }
 
-
-            var propertySets = rows.GroupBy(r => r.PropertySetName).Select(g => new PropertySetItem
-            {
-                PropertySetName = g.Key,
-                PropertyItems = g
-                                        .Select(r => new PropertyItem
-                                        {
-                                            PropertyName = r.PropertyName,
-                                            DataType = r.DataType
-                                        })
-                                        .ToList()
-            })
-                                .ToList();
-
-            return propertySets;
-
+            return rows
+                .GroupBy(r => r.PropertySetName)
+                .Select(group => new PropertySetItem
+                {
+                    PropertySetName = group.Key,
+                    PropertyItems = group
+                        .Select(r => new PropertyItem { PropertyName = r.PropertyName, DataType = r.DataType })
+                        .ToList()
+                })
+                .ToList();
         }
 
-        public static List<string> GetPropertyNames(string filePath, PropertiesSheet propertiesSheet)
+        public static List<string> GetPropertyNames(string filePath, PropertiesSheet settings)
         {
-            var propertyNames = new List<string>();
-
-            using (var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read))
+            Worksheet? sheet = Workbook.Open(filePath).FindSheet(settings.SheetName);
+            if (sheet == null)
             {
-                IWorkbook workbook = new XSSFWorkbook(fs);
-                ISheet sheet = workbook.GetSheet(propertiesSheet.SheetName);
-
-                if (sheet == null)
-                    return propertyNames;
-
-                int headerRowIndex = propertiesSheet.HeaderRowIndex;
-                IRow headerRow = sheet.GetRow(headerRowIndex);
-
-                int colName = headerRow.Cells.FindIndex(c => c.StringCellValue == propertiesSheet.PropertyNameColumn);
-
-                for (int i = headerRowIndex + 1; i <= sheet.LastRowNum; i++)
-                {
-                    IRow row = sheet.GetRow(i);
-                    if (row == null) continue;
-
-                    var propertyName = row.GetCell(colName)?.ToString()?.Trim();
-                    if (!string.IsNullOrWhiteSpace(propertyName))
-                        propertyNames.Add(propertyName);
-                }
+                return new List<string>();
             }
 
-            return propertyNames.OrderBy(item => item).ToList();
+            int columnName = FindColumn(sheet, settings.HeaderRowIndex, settings.PropertyNameColumn);
+
+            return Enumerable.Range(settings.HeaderRowIndex + 1, Math.Max(0, sheet.RowCount - settings.HeaderRowIndex - 1))
+                .Select(row => Cell(sheet, row, columnName))
+                .Where(name => !string.IsNullOrWhiteSpace(name))
+                .OrderBy(name => name, StringComparer.Ordinal)
+                .ToList();
         }
 
         public static void SavePropertySetItems(string filePath, PropertiesSheet settings, List<PropertySetItem> propertySets)
         {
-            IWorkbook workbook;
+            Workbook workbook = Workbook.Open(filePath);
+            Worksheet sheet = workbook.FindSheet(settings.SheetName) ?? workbook.AddSheet(settings.SheetName);
+            sheet.Clear();
 
-            using (var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read))
+            sheet.SetRow(settings.HeaderRowIndex, new object[]
             {
-                workbook = new XSSFWorkbook(fs);
-            }
+                settings.PropertySetNameColumn, settings.PropertyNameColumn, settings.DataTypeColumn
+            });
 
-            var sheet = workbook.GetSheet(settings.SheetName) ?? workbook.CreateSheet(settings.SheetName);
-
-            // Clear sheet
-            for (int i = sheet.LastRowNum; i >= 0; i--)
+            int row = settings.HeaderRowIndex + 1;
+            foreach (PropertySetItem set in propertySets)
             {
-                var row = sheet.GetRow(i);
-                if (row != null)
-                    sheet.RemoveRow(row);
-            }
-
-            int headerRowIndex = settings.HeaderRowIndex;
-            var headerRow = sheet.CreateRow(headerRowIndex);
-
-            headerRow.CreateCell(0).SetCellValue(settings.PropertySetNameColumn);
-            headerRow.CreateCell(1).SetCellValue(settings.PropertyNameColumn);
-            headerRow.CreateCell(2).SetCellValue(settings.DataTypeColumn);
-
-            int rowIndex = headerRowIndex + 1;
-
-            foreach (var set in propertySets)
-            {
-                foreach (var prop in set.PropertyItems)
+                foreach (PropertyItem property in set.PropertyItems)
                 {
-                    var row = sheet.CreateRow(rowIndex++);
-
-                    row.CreateCell(0).SetCellValue(set.PropertySetName);
-                    row.CreateCell(1).SetCellValue(prop.PropertyName);
-                    row.CreateCell(2).SetCellValue(prop.DataType);
+                    sheet.SetRow(row++, new object[] { set.PropertySetName, property.PropertyName, property.DataType });
                 }
             }
 
-            using (var fs = new FileStream(filePath, FileMode.Create, FileAccess.Write))
-            {
-                workbook.Write(fs);
-            }
+            workbook.Save(filePath);
         }
+
+        // ----- Picklists ----------------------------------------------------------------------------------------
 
         public static List<PicklistGroup> LoadPicklistGroups(string filePath, PicklistSheet settings)
         {
-            using (var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read))
+            Worksheet? sheet = Workbook.Open(filePath).FindSheet(settings.SheetName);
+            if (sheet == null || sheet.RowCount == 0)
             {
-                IWorkbook workbook = new XSSFWorkbook(fs);
-
-                ISheet sheet = workbook.GetSheet(settings.SheetName);
-                if (sheet == null)
-                    return new List<PicklistGroup>();
-
-                // --- Header row ---
-                IRow headerRow = sheet.GetRow(0);
-                if (headerRow == null)
-                    return new List<PicklistGroup>();
-
-                int columnCount = headerRow.LastCellNum;
-
-                // --- Prepare groups ---
-                var groups = new Dictionary<int, PicklistGroup>();
-
-                for (int c = 0; c < columnCount; c++)
-                {
-                    string header = headerRow.GetCell(c)?.ToString()?.Trim();
-                    if (string.IsNullOrWhiteSpace(header))
-                        continue;
-
-                    groups[c] = new PicklistGroup
-                    {
-                        GroupName = header
-                    };
-                }
-
-                // --- Read data rows ---
-                for (int r = 1; r <= sheet.LastRowNum; r++)
-                {
-                    IRow row = sheet.GetRow(r);
-                    if (row == null)
-                        continue;
-
-                    foreach (var kvp in groups)
-                    {
-                        int colIndex = kvp.Key;
-                        PicklistGroup group = kvp.Value;
-
-                        string value = row.GetCell(colIndex)?.ToString()?.Trim();
-                        if (!string.IsNullOrWhiteSpace(value))
-                            group.Values.Add(value);
-                    }
-                }
-
-                // --- Deduplicate & sort ---
-                foreach (var group in groups.Values)
-                {
-                    group.Values = group.Values
-                        .Distinct()
-                        .OrderBy(v => v)
-                        .ToList();
-                }
-
-                return groups.Values.ToList();
+                return new List<PicklistGroup>();
             }
 
+            var groups = new List<(int Column, PicklistGroup Group)>();
+            for (int column = 0; column < sheet.GetColumnCount(0); column++)
+            {
+                string header = Cell(sheet, 0, column);
+                if (header.Length > 0)
+                {
+                    groups.Add((column, new PicklistGroup { GroupName = header }));
+                }
+            }
+
+            for (int row = 1; row < sheet.RowCount; row++)
+            {
+                foreach ((int column, PicklistGroup group) in groups)
+                {
+                    string value = Cell(sheet, row, column);
+                    if (value.Length > 0)
+                    {
+                        group.Values.Add(value);
+                    }
+                }
+            }
+
+            foreach ((int _, PicklistGroup group) in groups)
+            {
+                group.Values = group.Values.Distinct().OrderBy(v => v, StringComparer.Ordinal).ToList();
+            }
+
+            return groups.Select(g => g.Group).ToList();
         }
 
-        public static void SavePicklists(
-    string path,
-    string sheetName,
-    List<PicklistGroup> picklists)
+        public static void SavePicklists(string path, string sheetName, List<PicklistGroup> picklists)
         {
-            IWorkbook workbook;
+            Workbook workbook = File.Exists(path) ? Workbook.Open(path) : Workbook.Create();
 
-            if (File.Exists(path))
+            // Rewrite the sheet from scratch so stale columns do not survive.
+            workbook.RemoveSheet(sheetName);
+            Worksheet sheet = workbook.AddSheet(sheetName);
+
+            sheet.SetRow(0, picklists.Select(p => (object?)p.GroupName));
+
+            int maxRows = picklists.Count == 0 ? 0 : picklists.Max(p => p.Values.Count);
+            for (int index = 0; index < maxRows; index++)
             {
-                using var fs = new FileStream(path, FileMode.Open, FileAccess.Read);
-                workbook = new XSSFWorkbook(fs);
-            }
-            else
-            {
-                workbook = new XSSFWorkbook();
-            }
-
-            // Remove sheet if exists
-            var existing = workbook.GetSheet(sheetName);
-            if (existing != null)
-            {
-                int index = workbook.GetSheetIndex(existing);
-                workbook.RemoveSheetAt(index);
-            }
-
-            var sheet = workbook.CreateSheet(sheetName);
-
-            // ✅ Header row
-            var header = sheet.CreateRow(0);
-
-            for (int col = 0; col < picklists.Count; col++)
-            {
-                header.CreateCell(col).SetCellValue(picklists[col].GroupName);
-            }
-
-            // ✅ Find max row count
-            int maxRows = picklists.Max(p => p.Values.Count);
-
-            // ✅ Fill rows
-            for (int rowIndex = 0; rowIndex < maxRows; rowIndex++)
-            {
-                var row = sheet.CreateRow(rowIndex + 1);
-
-                for (int col = 0; col < picklists.Count; col++)
+                for (int column = 0; column < picklists.Count; column++)
                 {
-                    var list = picklists[col];
-                    if (rowIndex < list.Values.Count)
+                    if (index < picklists[column].Values.Count)
                     {
-                        row.CreateCell(col).SetCellValue(list.Values[rowIndex]);
+                        sheet.SetValue(index + 1, column, picklists[column].Values[index]);
                     }
                 }
             }
 
-            // ✅ Autosize
-            for (int col = 0; col < picklists.Count; col++)
-            {
-                sheet.AutoSizeColumn(col);
-            }
-
-            // ✅ Save file
-            using var writeFs = new FileStream(path, FileMode.Create, FileAccess.Write);
-            workbook.Write(writeFs);
+            sheet.AutoSizeColumns(picklists.Count);
+            workbook.Save(path);
         }
 
-        public static List<LayerMappingItem> ReadLayerMappings(
-                                           string filePath,
-                                          LayersMappingSheet settings)
+        // ----- Layer mappings -----------------------------------------------------------------------------------
+
+        public static List<LayerMappingItem> ReadLayerMappings(string filePath, LayersMappingSheet settings)
         {
-            using (var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read))
+            Worksheet? sheet = Workbook.Open(filePath).FindSheet(settings.SheetName);
+            if (sheet == null || sheet.RowCount == 0)
             {
-                IWorkbook workbook = new XSSFWorkbook(fs);
-
-                ISheet sheet = workbook.GetSheet(settings.SheetName);
-                if (sheet == null)
-                    return new List<LayerMappingItem>();
-
-                IRow headerRow = sheet.GetRow(0);
-                if (headerRow == null)
-                    return new List<LayerMappingItem>();
-
-                int columnCount = headerRow.LastCellNum;
-
-                // Map column index → column name
-                var columns = new Dictionary<int, string>();
-                int layerNameColIndex = -1;
-
-                for (int c = 0; c < columnCount; c++)
-                {
-                    string header = headerRow.GetCell(c)?.ToString()?.Trim();
-                    if (string.IsNullOrWhiteSpace(header))
-                        continue;
-
-                    columns[c] = header;
-
-                    if (header == settings.LayerColumnName)
-                        layerNameColIndex = c;
-                }
-
-                if (layerNameColIndex == -1)
-                    return new List<LayerMappingItem>();
-
-                var result = new List<LayerMappingItem>();
-
-                // Read rows
-                for (int r = 1; r <= sheet.LastRowNum; r++)
-                {
-                    IRow row = sheet.GetRow(r);
-                    if (row == null)
-                        continue;
-
-                    string layerName = row.GetCell(layerNameColIndex)?.ToString()?.Trim();
-                    if (string.IsNullOrWhiteSpace(layerName))
-                        continue;
-
-                    var item = new LayerMappingItem
-                    {
-                        LayerName = layerName
-                    };
-
-                    foreach (var col in columns)
-                    {
-                        if (col.Key == layerNameColIndex)
-                            continue;
-
-                        string value = row.GetCell(col.Key)?.ToString()?.Trim();
-                        if (!string.IsNullOrWhiteSpace(value))
-                            item.PropertiesWithValues[col.Value] = value;
-                    }
-
-                    result.Add(item);
-                }
-
-                return result;
+                return new List<LayerMappingItem>();
             }
+
+            var columns = new Dictionary<int, string>();
+            int layerColumn = -1;
+
+            for (int column = 0; column < sheet.GetColumnCount(0); column++)
+            {
+                string header = Cell(sheet, 0, column);
+                if (header.Length == 0)
+                {
+                    continue;
+                }
+
+                columns[column] = header;
+                if (header == settings.LayerColumnName)
+                {
+                    layerColumn = column;
+                }
+            }
+
+            if (layerColumn < 0)
+            {
+                return new List<LayerMappingItem>();
+            }
+
+            var result = new List<LayerMappingItem>();
+            for (int row = 1; row < sheet.RowCount; row++)
+            {
+                string layerName = Cell(sheet, row, layerColumn);
+                if (layerName.Length == 0)
+                {
+                    continue;
+                }
+
+                var item = new LayerMappingItem { LayerName = layerName };
+                foreach (KeyValuePair<int, string> column in columns.Where(c => c.Key != layerColumn))
+                {
+                    string value = Cell(sheet, row, column.Key);
+                    if (value.Length > 0)
+                    {
+                        item.PropertiesWithValues[column.Value] = value;
+                    }
+                }
+
+                result.Add(item);
+            }
+
+            return result;
         }
 
-        public static List<PropertyValueMatch> LoadPropertiesValueMatches(
-    string filePath,
-    PropertyMatchSheet settings)
+        // ----- Matches ------------------------------------------------------------------------------------------
+
+        public static List<PropertyValueMatch> LoadPropertiesValueMatches(string filePath, PropertyMatchSheet settings)
         {
-            var propertyValueMatches = new List<PropertyValueMatch>();
+            var matches = new List<PropertyValueMatch>();
+            Workbook workbook = Workbook.Open(filePath);
 
-            using (var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read))
+            foreach (string sheetName in settings.SheetNames)
             {
-                IWorkbook workbook = new XSSFWorkbook(fs);
-
-                foreach (string sheetName in settings.SheetNames)
+                Worksheet? sheet = workbook.FindSheet(sheetName);
+                if (sheet == null || sheet.GetColumnCount(0) < 2)
                 {
-                    ISheet sheet = workbook.GetSheet(sheetName);
-                    if (sheet == null)
-                        continue;
+                    continue;
+                }
 
-                    // ---- READ HEADER ----
-                    IRow header = sheet.GetRow(0);
-                    if (header == null)
-                        continue;
+                int targetColumn = sheet.GetColumnCount(0) - 1;
+                string targetName = Cell(sheet, 0, targetColumn);
 
-                    int lastColIndex = header.LastCellNum - 1;
-
-                    // All source column names (0..last-1)
-                    List<string> sourcePropertyNames = new List<string>();
-                    for (int col = 0; col < lastColIndex; col++)
+                for (int row = 1; row < sheet.RowCount; row++)
+                {
+                    string targetValue = Cell(sheet, row, targetColumn);
+                    if (targetValue.Length == 0)
                     {
-                        sourcePropertyNames.Add(header.GetCell(col)?.ToString());
+                        continue;
                     }
 
-                    // Target name = last column
-                    string propertyNameTarget = header.GetCell(lastColIndex)?.ToString();
-
-                    // ---- READ ROWS ----
-                    for (int i = 1; i <= sheet.LastRowNum; i++)
+                    var source = new Dictionary<string, string>();
+                    for (int column = 0; column < targetColumn; column++)
                     {
-                        IRow row = sheet.GetRow(i);
-                        if (row == null)
-                            continue;
-
-                        string targetValue = row.GetCell(lastColIndex)?.ToString();
-                        if (string.IsNullOrWhiteSpace(targetValue))
-                            continue;
-
-                        // Build dictionary of all source columns that have values
-                        var sourceDict = new Dictionary<string, string>();
-
-                        for (int col = 0; col < lastColIndex; col++)
+                        string value = Cell(sheet, row, column);
+                        if (value.Length > 0)
                         {
-                            string valueSource = row.GetCell(col)?.ToString();
-
-                            if (!string.IsNullOrWhiteSpace(valueSource))
-                                sourceDict[sourcePropertyNames[col]] = valueSource;
+                            source[Cell(sheet, 0, column)] = value;
                         }
+                    }
 
-                        if (sourceDict.Count == 0)
-                            continue;
-
-                        propertyValueMatches.Add(new PropertyValueMatch
+                    if (source.Count > 0)
+                    {
+                        matches.Add(new PropertyValueMatch
                         {
-                            PropertyNameAndValuesSource = sourceDict,
-                            PropertyNameTarget = propertyNameTarget,
+                            PropertyNameAndValuesSource = source,
+                            PropertyNameTarget = targetName,
                             PropertyValueTarget = targetValue
                         });
                     }
                 }
             }
 
-            return propertyValueMatches;
+            return matches;
         }
 
-        public static string LoadOrPromptExcelFilePath(FileLinkSettings fileLinkSettings)
+        public static List<PropertyValueMatch> LoadPropertiesExactValueMatches(string filePath, PropertyExactMatchSheet settings)
         {
-            string excelFilePath = string.Empty;
+            var matches = new List<PropertyValueMatch>();
+            Workbook workbook = Workbook.Open(filePath);
 
-            if (File.Exists(fileLinkSettings.CustomExcelFilePath))
+            foreach (string sheetName in settings.SheetNames)
             {
-                excelFilePath = fileLinkSettings.CustomExcelFilePath;
-            }
-            else
-            {
-                if (fileLinkSettings.LoadDefault)
+                Worksheet? sheet = workbook.FindSheet(sheetName);
+                if (sheet == null || sheet.RowCount == 0)
                 {
-                    string assemblyFolder = AssemblyUtils.GetFolder(typeof(ExcelDataLoader));
-                    excelFilePath = System.IO.Path.Combine(assemblyFolder, Constants.FilesFolder, Constants.Tag4DFolder, Constants.ExcelSettingsFileName);
+                    continue;
+                }
+
+                string sourceName = Cell(sheet, 0, 0);
+                string targetName = Cell(sheet, 0, 1);
+
+                for (int row = 1; row < sheet.RowCount; row++)
+                {
+                    string source = Cell(sheet, row, 0);
+                    string target = Cell(sheet, row, 1);
+
+                    if (source.Length == 0 || target.Length == 0)
+                    {
+                        continue;
+                    }
+
+                    matches.Add(new PropertyValueMatch
+                    {
+                        PropertyNameAndValuesSource = new Dictionary<string, string> { { sourceName, source } },
+                        PropertyNameTarget = targetName,
+                        PropertyValueTarget = target
+                    });
                 }
             }
 
-            Properties.Settings.Default.ExcelFilePath = excelFilePath;
-            Properties.Settings.Default.Save();
-
-            return excelFilePath;
+            return matches;
         }
+
+        // ----- Expressions --------------------------------------------------------------------------------------
 
         public static List<ExpressionRule> LoadExpressions(string filePath, ExpressionSheet settings)
         {
             var result = new List<ExpressionRule>();
-
             if (!File.Exists(filePath))
-                return result;
-
-            using var stream = File.OpenRead(filePath);
-
-            IWorkbook workbook = new XSSFWorkbook(stream);
-
-            var sheet = workbook.GetSheet(settings.SheetName);
-
-            if (sheet == null)
-                return result;
-
-            for (int rowIndex = 1; rowIndex <= sheet.LastRowNum; rowIndex++)
             {
-                var row = sheet.GetRow(rowIndex);
+                return result;
+            }
 
-                if (row == null)
+            Worksheet? sheet = Workbook.Open(filePath).FindSheet(settings.SheetName);
+            if (sheet == null)
+            {
+                return result;
+            }
+
+            // Columns are located by header so the sheet can be re-ordered freely; the historical
+            // fixed layout (source, function, target) is the fallback.
+            int source = FindColumnOrDefault(sheet, settings.HeaderRowIndex, settings.SourcePropertyColumnName, 0);
+            int function = FindColumnOrDefault(sheet, settings.HeaderRowIndex, settings.FunctionColumnName, 1);
+            int target = FindColumnOrDefault(sheet, settings.HeaderRowIndex, settings.TargetPropertyColumnName, 2);
+
+            for (int row = settings.HeaderRowIndex + 1; row < sheet.RowCount; row++)
+            {
+                if (sheet.IsRowEmpty(row))
+                {
                     continue;
+                }
 
                 result.Add(new ExpressionRule
                 {
-                    SourcePropertyName = row.GetCell(0)?.ToString() ?? string.Empty,
-                    Function = row.GetCell(1)?.ToString() ?? string.Empty,
-                    TargetPropertyName = row.GetCell(2)?.ToString() ?? string.Empty
+                    SourcePropertyName = Cell(sheet, row, source),
+                    Function = Cell(sheet, row, function),
+                    TargetPropertyName = Cell(sheet, row, target)
                 });
             }
 
@@ -485,198 +349,132 @@ namespace Spark.Tag4D.Core.Models
 
         public static void SaveRules(string filePath, ExpressionSheet settings, IEnumerable<ExpressionRule> rules)
         {
-            IWorkbook workbook = XSSFWorkbookUtils.OpenExcelFile(filePath, FileAccess.ReadWrite);
+            Workbook workbook = Workbook.Open(filePath);
+            Worksheet sheet = workbook.FindSheet(settings.SheetName) ?? workbook.AddSheet(settings.SheetName);
+            sheet.Clear();
 
-            var sheet = workbook.GetSheet(settings.SheetName)
-                        ?? workbook.CreateSheet(settings.SheetName);
+            sheet.SetRow(0, new object[] { "Source Property Name", "Function", "Target Property Name" });
 
-            // Clear existing data
-            for (int i = sheet.LastRowNum; i >= 0; i--)
+            int row = 1;
+            foreach (ExpressionRule rule in rules)
             {
-                var row = sheet.GetRow(i);
-
-                if (row != null)
-                {
-                    sheet.RemoveRow(row);
-                }
+                sheet.SetRow(row++, new object[] { rule.SourcePropertyName, rule.Function, rule.TargetPropertyName });
             }
 
-            // Header
-            var headerRow = sheet.CreateRow(0);
-
-            headerRow.CreateCell(0).SetCellValue("Source Property Name");
-            headerRow.CreateCell(1).SetCellValue("Function");
-            headerRow.CreateCell(2).SetCellValue("Target Property Name");
-
-            int rowIndex = 1;
-
-            // Data
-            foreach (var rule in rules)
-            {
-                var row = sheet.CreateRow(rowIndex++);
-
-                row.CreateCell(0).SetCellValue(rule.SourcePropertyName);
-                row.CreateCell(1).SetCellValue(rule.Function);
-                row.CreateCell(2).SetCellValue(rule.TargetPropertyName);
-            }
-
-            sheet.AutoSizeColumn(0);
-            sheet.AutoSizeColumn(1);
-            sheet.AutoSizeColumn(2);
-
-            using (var fs = new FileStream(
-                filePath,
-                FileMode.Create,
-                FileAccess.Write))
-            {
-                workbook.Write(fs);
-            }
+            sheet.AutoSizeColumns(3);
+            workbook.Save(filePath);
         }
 
+        // ----- Composed properties ------------------------------------------------------------------------------
 
         public static List<ComposedPropertyItem> LoadComposed(string excelFilePath, ComposedSheet settings)
         {
-            var composedItems = new List<ComposedPropertyItem>();
-            using (var fs = new FileStream(excelFilePath, FileMode.Open, FileAccess.Read))
+            var items = new List<ComposedPropertyItem>();
+
+            Worksheet? sheet = Workbook.Open(excelFilePath).FindSheet(settings.SheetName);
+            if (sheet == null)
             {
-                IWorkbook workbook = new XSSFWorkbook(fs);
-                ISheet sheet = workbook.GetSheet(settings.SheetName);
+                return items;
+            }
 
-                if (sheet == null)
+            int nameColumn = FindColumn(sheet, settings.HeaderRowIndex, settings.ComposedPropertyColumnName);
+            int formulaColumn = FindColumn(sheet, settings.HeaderRowIndex, settings.FormulaColumnName);
+
+            for (int row = settings.HeaderRowIndex + 1; row < sheet.RowCount; row++)
+            {
+                string name = Cell(sheet, row, nameColumn);
+                string formula = Cell(sheet, row, formulaColumn);
+
+                if (name.Length > 0 && formula.Length > 0)
                 {
-                    return composedItems;
-                }
-
-                int headerRowIndex = settings.HeaderRowIndex;
-                IRow headerRow = sheet.GetRow(headerRowIndex);
-                int cellIndexName = headerRow.Cells.FindIndex(c => c.StringCellValue == settings.ComposedPropertyColumnName);
-                int cellIndexFormula = headerRow.Cells.FindIndex(c => c.StringCellValue == settings.FormulaColumnName);
-
-                for (int i = headerRowIndex + 1; i <= sheet.LastRowNum; i++)
-                {
-                    IRow row = sheet.GetRow(i);
-                    if (row == null)
-                    {
-                        continue;
-                    }
-
-                    string valuePropertyName = row.GetCell(cellIndexName)?.ToString()?.Trim();
-                    string valueFormula = row.GetCell(cellIndexFormula)?.ToString()?.Trim();
-
-                    if (string.IsNullOrEmpty(valuePropertyName) || string.IsNullOrEmpty(valueFormula))
-                    {
-                        continue;
-                    }
-
-                    composedItems.Add(new ComposedPropertyItem
-                    {
-                        ComposedPropertyName = valuePropertyName,
-                        Formula = valueFormula
-                    });
+                    items.Add(new ComposedPropertyItem { ComposedPropertyName = name, Formula = formula });
                 }
             }
-            return composedItems;
+
+            return items;
         }
 
-        public static void SaveComposed(
-       string filePath,  ComposedSheet settings,
-       IEnumerable<ComposedPropertyItem> properties)
+        public static void SaveComposed(string filePath, ComposedSheet settings, IEnumerable<ComposedPropertyItem> properties)
         {
-            XSSFWorkbook workbook;
+            Workbook workbook = Workbook.Open(filePath);
+            Worksheet sheet = workbook.FindSheet(settings.SheetName) ?? workbook.AddSheet(settings.SheetName);
+            sheet.Clear();
 
-            using (var read = File.Open(filePath, FileMode.Open, FileAccess.Read))
+            sheet.SetRow(0, new object[] { settings.ComposedPropertyColumnName, settings.FormulaColumnName });
+
+            int row = 1;
+            foreach (ComposedPropertyItem item in properties)
             {
-                workbook = new XSSFWorkbook(read);
+                sheet.SetRow(row++, new object[] { item.ComposedPropertyName, item.Formula });
             }
 
-            var sheet = workbook.GetSheet(settings.SheetName);
-
-            while (sheet.LastRowNum > 0)
-            {
-                sheet.RemoveRow(sheet.GetRow(sheet.LastRowNum));
-                sheet.ShiftRows(
-                    sheet.LastRowNum,
-                    sheet.LastRowNum,
-                    -1);
-            }
-
-            var header = sheet.GetRow(0) ?? sheet.CreateRow(0);
-
-            header.CreateCell(0).SetCellValue(settings.ComposedPropertyColumnName);
-            header.CreateCell(1).SetCellValue(settings.FormulaColumnName);
-
-            int rowIndex = 1;
-
-            foreach (var item in properties)
-            {
-                var row = sheet.CreateRow(rowIndex++);
-
-                row.CreateCell(0).SetCellValue(item.ComposedPropertyName);
-                row.CreateCell(1).SetCellValue(item.Formula);
-            }
-
-            using var write = File.Create(filePath);
-
-            workbook.Write(write);
+            workbook.Save(filePath);
         }
 
-        public static List<PropertyValueMatch> LoadPropertiesExactValueMatches(string filePath, PropertyExactMatchSheet settings)
+        // ----- File location ------------------------------------------------------------------------------------
+
+        /// <summary>
+        /// Resolves the workbook to use: the custom file when it exists, otherwise the one shipped with the product.
+        /// The result is remembered in the user settings.
+        /// </summary>
+        public static string LoadOrPromptExcelFilePath(FileLinkSettings fileLinkSettings)
         {
-            List<PropertyValueMatch> propertyValueMatches = new List<PropertyValueMatch>();
+            string excelFilePath = string.Empty;
 
-            using (var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read))
+            if (File.Exists(fileLinkSettings.CustomExcelFilePath))
             {
-                IWorkbook workbook = new XSSFWorkbook(fs);
-
-                List<string> sheetNames = settings.SheetNames;
-
-                foreach (string sheetName in sheetNames)
-                {
-                    ISheet sheet = workbook.GetSheet(sheetName);
-                    if (sheet == null)
-                    {
-                        continue;
-                    }
-
-                    // Read header row
-                    IRow header = sheet.GetRow(0);
-                    string propertyNameSource = header.GetCell(0).ToString();
-                    string propertyNameTarget = header.GetCell(1).ToString();
-
-                    // Iterate rows
-                    for (int i = 1; i <= sheet.LastRowNum; i++)
-                    {
-                        IRow row = sheet.GetRow(i);
-                        if (row == null) continue;
-
-                        string valueSource = row.GetCell(0)?.ToString();
-                        string valueTarget = row.GetCell(1)?.ToString();
-
-                        if (string.IsNullOrWhiteSpace(valueSource) || string.IsNullOrWhiteSpace(valueTarget))
-                            continue;
-
-                        propertyValueMatches.Add(new PropertyValueMatch
-                        {
-                            PropertyNameAndValuesSource = new Dictionary<string, string> { { propertyNameSource, valueSource } },
-                            PropertyNameTarget = propertyNameTarget,
-                            PropertyValueTarget = valueTarget
-                        });
-                    }
-                }
+                excelFilePath = fileLinkSettings.CustomExcelFilePath;
+            }
+            else if (fileLinkSettings.LoadDefault)
+            {
+                excelFilePath = GetDefaultExcelFilePath();
             }
 
-            return propertyValueMatches;
+            SavePath(excelFilePath);
+            return excelFilePath;
+        }
+
+        public static string GetDefaultExcelFilePath()
+        {
+            return Path.Combine(
+                AssemblyUtils.GetFolder(typeof(ExcelDataLoader)),
+                Constants.FilesFolder,
+                Constants.Tag4DFolder,
+                Constants.ExcelSettingsFileName);
         }
 
         public static void SavePath(string path)
         {
-            Properties.Settings.Default.ExcelFilePath = path;
-            Properties.Settings.Default.Save();
+            UserSettings.Current.ExcelFilePath = path;
+            UserSettings.Current.Save();
         }
 
-        public static string GetPath()
+        public static string GetPath() => UserSettings.Current.ExcelFilePath;
+
+        // ----- Helpers ------------------------------------------------------------------------------------------
+
+        private static string Cell(Worksheet sheet, int row, int column)
         {
-            return Properties.Settings.Default.ExcelFilePath;
+            return column < 0 ? string.Empty : sheet.GetText(row, column).Trim();
+        }
+
+        private static int FindColumn(Worksheet sheet, int headerRow, string headerText)
+        {
+            for (int column = 0; column < sheet.GetColumnCount(headerRow); column++)
+            {
+                if (sheet.GetText(headerRow, column).Trim() == headerText)
+                {
+                    return column;
+                }
+            }
+
+            return -1;
+        }
+
+        private static int FindColumnOrDefault(Worksheet sheet, int headerRow, string headerText, int fallback)
+        {
+            int column = string.IsNullOrEmpty(headerText) ? -1 : FindColumn(sheet, headerRow, headerText);
+            return column >= 0 ? column : fallback;
         }
     }
 }
