@@ -1,0 +1,27 @@
+<Project>
+
+  <!--
+    Shared settings for the MicroStation add-in. Supported releases: CE (CONNECT Edition 10.17), 2025 (v25), 2026 (v26).
+    Select one with a solution configuration ("Debug MSCE", "Release MS2026", ...) or:  dotnet build -p:MicroStationVersion=2026
+  -->
+  <PropertyGroup>
+    <Configurations>Debug;Release;Debug MSCE;Debug MS2025;Debug MS2026;Release MSCE;Release MS2025;Release MS2026</Configurations>
+    <MicroStationVersion Condition="'$(MicroStationVersion)' == '' And $([System.Text.RegularExpressions.Regex]::IsMatch('$(Configuration)', ' MS(CE|\d{4})$'))">$([System.Text.RegularExpressions.Regex]::Replace('$(Configuration)', '^.* MS(CE|\d{4})$', '$1'))</MicroStationVersion>
+    <MicroStationVersion Condition="'$(MicroStationVersion)' == ''">2025</MicroStationVersion>
+
+    <!-- Folder name Bentley uses below Program Files / ProgramData for this release. -->
+    <MicroStationProductFolder Condition="'$(MicroStationVersion)' == 'CE'">MicroStation CE</MicroStationProductFolder>
+    <MicroStationProductFolder Condition="'$(MicroStationProductFolder)' == ''">MicroStation $(MicroStationVersion)</MicroStationProductFolder>
+    <MicroStationInstallDir>$(ProgramW6432)\Bentley\$(MicroStationProductFolder)\MicroStation</MicroStationInstallDir>
+    <MicroStationOrganizationDir>$(ProgramData)\Bentley\$(MicroStationProductFolder)\Configuration\Organization</MicroStationOrganizationDir>
+
+    <DefineConstants>$(DefineConstants);MICROSTATION_$(MicroStationVersion)</DefineConstants>
+    <ArtifactsPivots>$(BuildFlavor.ToLowerInvariant())_ms$(MicroStationVersion.ToLowerInvariant())</ArtifactsPivots>
+  </PropertyGroup>
+
+  <!-- F5 in a Debug configuration installs the build into the matching MicroStation. -->
+  <PropertyGroup Condition="'$(DeployToMicroStation)' == '' And '$(BuildFlavor)' == 'Debug' And '$(GITHUB_ACTIONS)' != 'true'">
+    <DeployToMicroStation>true</DeployToMicroStation>
+  </PropertyGroup>
+
+</Project>

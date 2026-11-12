@@ -2,15 +2,23 @@
 
   <!--
     Shared settings for every project that is compiled against a specific Revit release.
-    Select the release with:  dotnet build -p:RevitVersion=2025
+    Select the release with a solution configuration ("Debug R2025", "Release R2024", ...) or on the command line:
+        dotnet build -p:RevitVersion=2025
     Revit 2025+ runs on .NET 8, earlier releases on .NET Framework 4.8.
   -->
   <PropertyGroup>
+    <Configurations>Debug;Release;Debug R2023;Debug R2024;Debug R2025;Debug R2026;Release R2023;Release R2024;Release R2025;Release R2026</Configurations>
+    <RevitVersion Condition="'$(RevitVersion)' == '' And $([System.Text.RegularExpressions.Regex]::IsMatch('$(Configuration)', ' R\d{4}$'))">$([System.Text.RegularExpressions.Regex]::Replace('$(Configuration)', '^.* R(\d{4})$', '$1'))</RevitVersion>
     <RevitVersion Condition="'$(RevitVersion)' == ''">2025</RevitVersion>
     <TargetFramework Condition="$([System.Int32]::Parse('$(RevitVersion)')) &gt;= 2025">net8.0-windows</TargetFramework>
     <TargetFramework Condition="$([System.Int32]::Parse('$(RevitVersion)')) &lt; 2025">net48</TargetFramework>
     <DefineConstants>$(DefineConstants);REVIT$(RevitVersion)</DefineConstants>
-    <ArtifactsPivots>$(Configuration.ToLowerInvariant())_revit$(RevitVersion)</ArtifactsPivots>
+    <ArtifactsPivots>$(BuildFlavor.ToLowerInvariant())_revit$(RevitVersion)</ArtifactsPivots>
+  </PropertyGroup>
+
+  <!-- F5 in a Debug configuration installs the build into the matching Revit release (see the Revit project). -->
+  <PropertyGroup Condition="'$(DeployToRevit)' == '' And '$(BuildFlavor)' == 'Debug' And '$(GITHUB_ACTIONS)' != 'true'">
+    <DeployToRevit>true</DeployToRevit>
   </PropertyGroup>
 
   <!-- Revit API reference (compile-time only; Revit supplies the assemblies at run time). -->

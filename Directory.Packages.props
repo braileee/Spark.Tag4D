@@ -13,6 +13,12 @@
     <!-- Revit API (compile-time). The concrete version is chosen per Revit release in build/Revit.props. -->
     <PackageVersion Include="Revit_All_Main_Versions_API_x64" Version="2025.0.0" />
 
+    <!--
+      MicroStation API (compile-time). Re-publishes the Bentley assemblies of MicroStation CE 10.16. Bentley keeps the
+      assembly identity (1.0.0.0) stable across CE, 2025 and 2026, so the same reference binds to every installed version.
+    -->
+    <PackageVersion Include="Speckle.MicroStation.API" Version="0.0.0" />
+
     <!-- IFC validation (the only third-party runtime dependency). -->
     <PackageVersion Include="Xbim.Essentials" Version="6.0.565" />
 

@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+  Spark.Tag4D ribbon: a "Tag4D" tab with one group of three buttons, added to the Drawing, Modeling and Visualization
+  workflows. Loaded through  MS_RIBBONXML > .../Spark.Tag4D.ribbon.xml  (see Spark.Tag4D.cfg).
+  Every button runs a key-in defined in commands.xml, which in turn calls into the add-in.
+-->
+<RibbonItems xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="RibbonDefinitions.xsd">
+
+  <!-- Add the tab to the existing workflows. -->
+  <TabCollections>
+    <TabCollection Name="Mstn.Drawing" MatchProcessing="Merge">
+      <TabRef Name="Spark.Tag4D.Tab" Priority="90000" />
+    </TabCollection>
+    <TabCollection Name="ModelingTabs" MatchProcessing="Merge">
+      <TabRef Name="Spark.Tag4D.Tab" Priority="115000" />
+    </TabCollection>
+    <TabCollection Name="VisualizationTabs" MatchProcessing="Merge">
+      <TabRef Name="Spark.Tag4D.Tab" Priority="95000" />
+    </TabCollection>
+  </TabCollections>
+
+  <Tabs>
+    <Tab Name="Spark.Tag4D.Tab" Priority="1000">
+      <Label>Tag4D</Label>
+      <TabParams>
+        <AccessText>T4</AccessText>
+        <Visibility />
+      </TabParams>
+      <TabItems>
+        <GroupRef Name="Spark.Tag4D.IfcGroup" Priority="1000">
+          <GroupParams>
+            <GroupLauncherAccessText>1</GroupLauncherAccessText>
+            <AccessText>1</AccessText>
+          </GroupParams>
+        </GroupRef>
+      </TabItems>
+    </Tab>
+  </Tabs>
+
+  <Groups>
+    <Group Name="Spark.Tag4D.IfcGroup" PanelType="Collapsible" Priority="100">
+      <Label>IFC</Label>
+      <GroupParams>
+        <AccessText />
+        <Visibility />
+      </GroupParams>
+      <GroupItems>
+        <ButtonRef Name="Spark.Tag4D.Settings" Priority="1000">
+          <ButtonParams Size="Large" CollapseToSmall="WhenGroupIsSmall" CollapseToMedium="WhenGroupIsMedium">
+            <AccessText>S</AccessText>
+            <PopupAccessText>S</PopupAccessText>
+            <Visibility />
+          </ButtonParams>
+        </ButtonRef>
+        <ButtonRef Name="Spark.Tag4D.LoadParameters" Priority="2000">
+          <ButtonParams Size="Large" CollapseToSmall="WhenGroupIsSmall" CollapseToMedium="WhenGroupIsMedium">
+            <AccessText>L</AccessText>
+            <PopupAccessText>L</PopupAccessText>
+            <Visibility />
+          </ButtonParams>
+        </ButtonRef>
+        <ButtonRef Name="Spark.Tag4D.TagElements" Priority="3000">
+          <ButtonParams Size="Large" CollapseToSmall="WhenGroupIsSmall" CollapseToMedium="WhenGroupIsMedium">
+            <AccessText>T</AccessText>
+            <PopupAccessText>T</PopupAccessText>
+            <Visibility />
+          </ButtonParams>
+        </ButtonRef>
+      </GroupItems>
+    </Group>
+  </Groups>
+
+  <Buttons>
+    <Button Name="Spark.Tag4D.Settings" Priority="100">
+      <ButtonParams>
+        <AccessText />
+        <PopupAccessText />
+        <Visibility />
+      </ButtonParams>
+      <ButtonData>
+        <CommandData Type="UserKeyinCommand">
+          <UserKeyinCommand>
+            <Keyin>Tag4D ShowSettings</Keyin>
+            <Icon Type="NamedIcon">
+              <NamedIcon>Spark.Tag4D.Settings</NamedIcon>
+            </Icon>
+            <Label>Settings</Label>
+            <Description>Edit the Spark.Tag4D property sets, picklists, matches and paths</Description>
+          </UserKeyinCommand>
+        </CommandData>
+      </ButtonData>
+    </Button>
+    <Button Name="Spark.Tag4D.LoadParameters" Priority="200">
+      <ButtonParams>
+        <AccessText />
+        <PopupAccessText />
+        <Visibility />
+      </ButtonParams>
+      <ButtonData>
+        <CommandData Type="UserKeyinCommand">
+          <UserKeyinCommand>
+            <Keyin>Tag4D LoadParameters</Keyin>
+            <Icon Type="NamedIcon">
+              <NamedIcon>Spark.Tag4D.LoadParameters</NamedIcon>
+            </Icon>
+            <Label>Load Parameters</Label>
+            <Description>Create the item types from the parameters workbook and attach them to the elements of the active model</Description>
+          </UserKeyinCommand>
+        </CommandData>
+      </ButtonData>
+    </Button>
+    <Button Name="Spark.Tag4D.TagElements" Priority="300">
+      <ButtonParams>
+        <AccessText />
+        <PopupAccessText />
+        <Visibility />
+      </ButtonParams>
+      <ButtonData>
+        <CommandData Type="UserKeyinCommand">
+          <UserKeyinCommand>
+            <Keyin>Tag4D TagElements</Keyin>
+            <Icon Type="NamedIcon">
+              <NamedIcon>Spark.Tag4D.TagElements</NamedIcon>
+            </Icon>
+            <Label>Tag Elements</Label>
+            <Description>Tag the selected elements with IFC properties</Description>
+          </UserKeyinCommand>
+        </CommandData>
+      </ButtonData>
+    </Button>
+  </Buttons>
+
+</RibbonItems>

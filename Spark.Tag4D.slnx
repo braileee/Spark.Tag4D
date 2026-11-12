@@ -1,30 +1,355 @@
 <Solution>
+  <!--
+    Solution configurations are "<Debug|Release> <target>". The target selects what is built and, for Revit and MicroStation,
+    which release the add-in is compiled and deployed for:
+      R2023..R2026    Revit add-in for that release (+ shared libraries)
+      MSCE, MS2025, MS2026   MicroStation CE / 2025 / 2026 add-in (+ shared libraries)
+      IfcValidator    the standalone IFC validator (+ shared libraries)
+      Installer       the installer builder only
+    Plain Debug / Release build everything (Revit 2025, MicroStation 2025).
+  -->
+  <Configurations>
+    <BuildType Name="Debug" />
+    <BuildType Name="Debug R2023" />
+    <BuildType Name="Debug R2024" />
+    <BuildType Name="Debug R2025" />
+    <BuildType Name="Debug R2026" />
+    <BuildType Name="Debug MSCE" />
+    <BuildType Name="Debug MS2025" />
+    <BuildType Name="Debug MS2026" />
+    <BuildType Name="Debug IfcValidator" />
+    <BuildType Name="Debug Installer" />
+    <BuildType Name="Release" />
+    <BuildType Name="Release R2023" />
+    <BuildType Name="Release R2024" />
+    <BuildType Name="Release R2025" />
+    <BuildType Name="Release R2026" />
+    <BuildType Name="Release MSCE" />
+    <BuildType Name="Release MS2025" />
+    <BuildType Name="Release MS2026" />
+    <BuildType Name="Release IfcValidator" />
+    <BuildType Name="Release Installer" />
+    <Platform Name="Any CPU" />
+  </Configurations>
   <Folder Name="/Solution Items/">
     <File Path=".editorconfig" />
     <File Path="Directory.Build.props" />
     <File Path="Directory.Packages.props" />
     <File Path="build/Revit.props" />
+    <File Path="build/MicroStation.props" />
     <File Path=".github/workflows/build.yml" />
     <File Path="README.md" />
   </Folder>
   <Folder Name="/src/">
-    <Project Path="src/Spark.Tag4D.Core/Spark.Tag4D.Core.csproj" />
-    <Project Path="src/Spark.Tag4D.UI/Spark.Tag4D.UI.csproj" />
-    <Project Path="src/Spark.Tag4D.Settings/Spark.Tag4D.Settings.csproj" />
-    <Project Path="src/Spark.Tag4D.IfcValidator/Spark.Tag4D.IfcValidator.csproj" />
+    <Project Path="src/Spark.Tag4D.Core/Spark.Tag4D.Core.csproj">
+      <BuildType Solution="Debug|*" Project="Debug" />
+      <BuildType Solution="Debug R2023|*" Project="Debug" />
+      <BuildType Solution="Debug R2024|*" Project="Debug" />
+      <BuildType Solution="Debug R2025|*" Project="Debug" />
+      <BuildType Solution="Debug R2026|*" Project="Debug" />
+      <BuildType Solution="Debug MSCE|*" Project="Debug" />
+      <BuildType Solution="Debug MS2025|*" Project="Debug" />
+      <BuildType Solution="Debug MS2026|*" Project="Debug" />
+      <BuildType Solution="Debug IfcValidator|*" Project="Debug" />
+      <BuildType Solution="Debug Installer|*" Project="Debug" />
+      <Build Solution="Debug Installer|*" Project="false" />
+      <BuildType Solution="Release|*" Project="Release" />
+      <BuildType Solution="Release R2023|*" Project="Release" />
+      <BuildType Solution="Release R2024|*" Project="Release" />
+      <BuildType Solution="Release R2025|*" Project="Release" />
+      <BuildType Solution="Release R2026|*" Project="Release" />
+      <BuildType Solution="Release MSCE|*" Project="Release" />
+      <BuildType Solution="Release MS2025|*" Project="Release" />
+      <BuildType Solution="Release MS2026|*" Project="Release" />
+      <BuildType Solution="Release IfcValidator|*" Project="Release" />
+      <BuildType Solution="Release Installer|*" Project="Release" />
+      <Build Solution="Release Installer|*" Project="false" />
+    </Project>
+    <Project Path="src/Spark.Tag4D.UI/Spark.Tag4D.UI.csproj">
+      <BuildType Solution="Debug|*" Project="Debug" />
+      <BuildType Solution="Debug R2023|*" Project="Debug" />
+      <BuildType Solution="Debug R2024|*" Project="Debug" />
+      <BuildType Solution="Debug R2025|*" Project="Debug" />
+      <BuildType Solution="Debug R2026|*" Project="Debug" />
+      <BuildType Solution="Debug MSCE|*" Project="Debug" />
+      <BuildType Solution="Debug MS2025|*" Project="Debug" />
+      <BuildType Solution="Debug MS2026|*" Project="Debug" />
+      <BuildType Solution="Debug IfcValidator|*" Project="Debug" />
+      <BuildType Solution="Debug Installer|*" Project="Debug" />
+      <Build Solution="Debug Installer|*" Project="false" />
+      <BuildType Solution="Release|*" Project="Release" />
+      <BuildType Solution="Release R2023|*" Project="Release" />
+      <BuildType Solution="Release R2024|*" Project="Release" />
+      <BuildType Solution="Release R2025|*" Project="Release" />
+      <BuildType Solution="Release R2026|*" Project="Release" />
+      <BuildType Solution="Release MSCE|*" Project="Release" />
+      <BuildType Solution="Release MS2025|*" Project="Release" />
+      <BuildType Solution="Release MS2026|*" Project="Release" />
+      <BuildType Solution="Release IfcValidator|*" Project="Release" />
+      <BuildType Solution="Release Installer|*" Project="Release" />
+      <Build Solution="Release Installer|*" Project="false" />
+    </Project>
+    <Project Path="src/Spark.Tag4D.Settings/Spark.Tag4D.Settings.csproj">
+      <BuildType Solution="Debug|*" Project="Debug" />
+      <BuildType Solution="Debug R2023|*" Project="Debug" />
+      <BuildType Solution="Debug R2024|*" Project="Debug" />
+      <BuildType Solution="Debug R2025|*" Project="Debug" />
+      <BuildType Solution="Debug R2026|*" Project="Debug" />
+      <BuildType Solution="Debug MSCE|*" Project="Debug" />
+      <BuildType Solution="Debug MS2025|*" Project="Debug" />
+      <BuildType Solution="Debug MS2026|*" Project="Debug" />
+      <BuildType Solution="Debug IfcValidator|*" Project="Debug" />
+      <BuildType Solution="Debug Installer|*" Project="Debug" />
+      <Build Solution="Debug Installer|*" Project="false" />
+      <BuildType Solution="Release|*" Project="Release" />
+      <BuildType Solution="Release R2023|*" Project="Release" />
+      <BuildType Solution="Release R2024|*" Project="Release" />
+      <BuildType Solution="Release R2025|*" Project="Release" />
+      <BuildType Solution="Release R2026|*" Project="Release" />
+      <BuildType Solution="Release MSCE|*" Project="Release" />
+      <BuildType Solution="Release MS2025|*" Project="Release" />
+      <BuildType Solution="Release MS2026|*" Project="Release" />
+      <BuildType Solution="Release IfcValidator|*" Project="Release" />
+      <BuildType Solution="Release Installer|*" Project="Release" />
+      <Build Solution="Release Installer|*" Project="false" />
+    </Project>
+    <Project Path="src/Spark.Tag4D.IfcValidator/Spark.Tag4D.IfcValidator.csproj">
+      <BuildType Solution="Debug|*" Project="Debug" />
+      <BuildType Solution="Debug R2023|*" Project="Debug" />
+      <Build Solution="Debug R2023|*" Project="false" />
+      <BuildType Solution="Debug R2024|*" Project="Debug" />
+      <Build Solution="Debug R2024|*" Project="false" />
+      <BuildType Solution="Debug R2025|*" Project="Debug" />
+      <Build Solution="Debug R2025|*" Project="false" />
+      <BuildType Solution="Debug R2026|*" Project="Debug" />
+      <Build Solution="Debug R2026|*" Project="false" />
+      <BuildType Solution="Debug MSCE|*" Project="Debug" />
+      <Build Solution="Debug MSCE|*" Project="false" />
+      <BuildType Solution="Debug MS2025|*" Project="Debug" />
+      <Build Solution="Debug MS2025|*" Project="false" />
+      <BuildType Solution="Debug MS2026|*" Project="Debug" />
+      <Build Solution="Debug MS2026|*" Project="false" />
+      <BuildType Solution="Debug IfcValidator|*" Project="Debug" />
+      <BuildType Solution="Debug Installer|*" Project="Debug" />
+      <Build Solution="Debug Installer|*" Project="false" />
+      <BuildType Solution="Release|*" Project="Release" />
+      <BuildType Solution="Release R2023|*" Project="Release" />
+      <Build Solution="Release R2023|*" Project="false" />
+      <BuildType Solution="Release R2024|*" Project="Release" />
+      <Build Solution="Release R2024|*" Project="false" />
+      <BuildType Solution="Release R2025|*" Project="Release" />
+      <Build Solution="Release R2025|*" Project="false" />
+      <BuildType Solution="Release R2026|*" Project="Release" />
+      <Build Solution="Release R2026|*" Project="false" />
+      <BuildType Solution="Release MSCE|*" Project="Release" />
+      <Build Solution="Release MSCE|*" Project="false" />
+      <BuildType Solution="Release MS2025|*" Project="Release" />
+      <Build Solution="Release MS2025|*" Project="false" />
+      <BuildType Solution="Release MS2026|*" Project="Release" />
+      <Build Solution="Release MS2026|*" Project="false" />
+      <BuildType Solution="Release IfcValidator|*" Project="Release" />
+      <BuildType Solution="Release Installer|*" Project="Release" />
+      <Build Solution="Release Installer|*" Project="false" />
+    </Project>
   </Folder>
   <Folder Name="/src/Revit/">
-    <Project Path="src/Spark.Tag4D.Revit.Core/Spark.Tag4D.Revit.Core.csproj" />
-    <Project Path="src/Spark.Tag4D.Revit.App/Spark.Tag4D.Revit.App.csproj" />
-    <Project Path="src/Spark.Tag4D.Revit/Spark.Tag4D.Revit.csproj" />
+    <Project Path="src/Spark.Tag4D.Revit.Core/Spark.Tag4D.Revit.Core.csproj">
+      <BuildType Solution="Debug|*" Project="Debug" />
+      <BuildType Solution="Debug R2023|*" Project="Debug R2023" />
+      <BuildType Solution="Debug R2024|*" Project="Debug R2024" />
+      <BuildType Solution="Debug R2025|*" Project="Debug R2025" />
+      <BuildType Solution="Debug R2026|*" Project="Debug R2026" />
+      <BuildType Solution="Debug MSCE|*" Project="Debug" />
+      <Build Solution="Debug MSCE|*" Project="false" />
+      <BuildType Solution="Debug MS2025|*" Project="Debug" />
+      <Build Solution="Debug MS2025|*" Project="false" />
+      <BuildType Solution="Debug MS2026|*" Project="Debug" />
+      <Build Solution="Debug MS2026|*" Project="false" />
+      <BuildType Solution="Debug IfcValidator|*" Project="Debug" />
+      <Build Solution="Debug IfcValidator|*" Project="false" />
+      <BuildType Solution="Debug Installer|*" Project="Debug" />
+      <Build Solution="Debug Installer|*" Project="false" />
+      <BuildType Solution="Release|*" Project="Release" />
+      <BuildType Solution="Release R2023|*" Project="Release R2023" />
+      <BuildType Solution="Release R2024|*" Project="Release R2024" />
+      <BuildType Solution="Release R2025|*" Project="Release R2025" />
+      <BuildType Solution="Release R2026|*" Project="Release R2026" />
+      <BuildType Solution="Release MSCE|*" Project="Release" />
+      <Build Solution="Release MSCE|*" Project="false" />
+      <BuildType Solution="Release MS2025|*" Project="Release" />
+      <Build Solution="Release MS2025|*" Project="false" />
+      <BuildType Solution="Release MS2026|*" Project="Release" />
+      <Build Solution="Release MS2026|*" Project="false" />
+      <BuildType Solution="Release IfcValidator|*" Project="Release" />
+      <Build Solution="Release IfcValidator|*" Project="false" />
+      <BuildType Solution="Release Installer|*" Project="Release" />
+      <Build Solution="Release Installer|*" Project="false" />
+    </Project>
+    <Project Path="src/Spark.Tag4D.Revit.App/Spark.Tag4D.Revit.App.csproj">
+      <BuildType Solution="Debug|*" Project="Debug" />
+      <BuildType Solution="Debug R2023|*" Project="Debug R2023" />
+      <BuildType Solution="Debug R2024|*" Project="Debug R2024" />
+      <BuildType Solution="Debug R2025|*" Project="Debug R2025" />
+      <BuildType Solution="Debug R2026|*" Project="Debug R2026" />
+      <BuildType Solution="Debug MSCE|*" Project="Debug" />
+      <Build Solution="Debug MSCE|*" Project="false" />
+      <BuildType Solution="Debug MS2025|*" Project="Debug" />
+      <Build Solution="Debug MS2025|*" Project="false" />
+      <BuildType Solution="Debug MS2026|*" Project="Debug" />
+      <Build Solution="Debug MS2026|*" Project="false" />
+      <BuildType Solution="Debug IfcValidator|*" Project="Debug" />
+      <Build Solution="Debug IfcValidator|*" Project="false" />
+      <BuildType Solution="Debug Installer|*" Project="Debug" />
+      <Build Solution="Debug Installer|*" Project="false" />
+      <BuildType Solution="Release|*" Project="Release" />
+      <BuildType Solution="Release R2023|*" Project="Release R2023" />
+      <BuildType Solution="Release R2024|*" Project="Release R2024" />
+      <BuildType Solution="Release R2025|*" Project="Release R2025" />
+      <BuildType Solution="Release R2026|*" Project="Release R2026" />
+      <BuildType Solution="Release MSCE|*" Project="Release" />
+      <Build Solution="Release MSCE|*" Project="false" />
+      <BuildType Solution="Release MS2025|*" Project="Release" />
+      <Build Solution="Release MS2025|*" Project="false" />
+      <BuildType Solution="Release MS2026|*" Project="Release" />
+      <Build Solution="Release MS2026|*" Project="false" />
+      <BuildType Solution="Release IfcValidator|*" Project="Release" />
+      <Build Solution="Release IfcValidator|*" Project="false" />
+      <BuildType Solution="Release Installer|*" Project="Release" />
+      <Build Solution="Release Installer|*" Project="false" />
+    </Project>
+    <Project Path="src/Spark.Tag4D.Revit/Spark.Tag4D.Revit.csproj">
+      <BuildType Solution="Debug|*" Project="Debug" />
+      <BuildType Solution="Debug R2023|*" Project="Debug R2023" />
+      <BuildType Solution="Debug R2024|*" Project="Debug R2024" />
+      <BuildType Solution="Debug R2025|*" Project="Debug R2025" />
+      <BuildType Solution="Debug R2026|*" Project="Debug R2026" />
+      <BuildType Solution="Debug MSCE|*" Project="Debug" />
+      <Build Solution="Debug MSCE|*" Project="false" />
+      <BuildType Solution="Debug MS2025|*" Project="Debug" />
+      <Build Solution="Debug MS2025|*" Project="false" />
+      <BuildType Solution="Debug MS2026|*" Project="Debug" />
+      <Build Solution="Debug MS2026|*" Project="false" />
+      <BuildType Solution="Debug IfcValidator|*" Project="Debug" />
+      <Build Solution="Debug IfcValidator|*" Project="false" />
+      <BuildType Solution="Debug Installer|*" Project="Debug" />
+      <Build Solution="Debug Installer|*" Project="false" />
+      <BuildType Solution="Release|*" Project="Release" />
+      <BuildType Solution="Release R2023|*" Project="Release R2023" />
+      <BuildType Solution="Release R2024|*" Project="Release R2024" />
+      <BuildType Solution="Release R2025|*" Project="Release R2025" />
+      <BuildType Solution="Release R2026|*" Project="Release R2026" />
+      <BuildType Solution="Release MSCE|*" Project="Release" />
+      <Build Solution="Release MSCE|*" Project="false" />
+      <BuildType Solution="Release MS2025|*" Project="Release" />
+      <Build Solution="Release MS2025|*" Project="false" />
+      <BuildType Solution="Release MS2026|*" Project="Release" />
+      <Build Solution="Release MS2026|*" Project="false" />
+      <BuildType Solution="Release IfcValidator|*" Project="Release" />
+      <Build Solution="Release IfcValidator|*" Project="false" />
+      <BuildType Solution="Release Installer|*" Project="Release" />
+      <Build Solution="Release Installer|*" Project="false" />
+    </Project>
   </Folder>
   <Folder Name="/src/MicroStation/">
-    <Project Path="src/Spark.Tag4D.Microstation/Spark.Tag4D.Microstation.csproj" />
+    <Project Path="src/Spark.Tag4D.Microstation/Spark.Tag4D.Microstation.csproj">
+      <BuildType Solution="Debug|*" Project="Debug" />
+      <BuildType Solution="Debug R2023|*" Project="Debug" />
+      <Build Solution="Debug R2023|*" Project="false" />
+      <BuildType Solution="Debug R2024|*" Project="Debug" />
+      <Build Solution="Debug R2024|*" Project="false" />
+      <BuildType Solution="Debug R2025|*" Project="Debug" />
+      <Build Solution="Debug R2025|*" Project="false" />
+      <BuildType Solution="Debug R2026|*" Project="Debug" />
+      <Build Solution="Debug R2026|*" Project="false" />
+      <BuildType Solution="Debug MSCE|*" Project="Debug MSCE" />
+      <BuildType Solution="Debug MS2025|*" Project="Debug MS2025" />
+      <BuildType Solution="Debug MS2026|*" Project="Debug MS2026" />
+      <BuildType Solution="Debug IfcValidator|*" Project="Debug" />
+      <Build Solution="Debug IfcValidator|*" Project="false" />
+      <BuildType Solution="Debug Installer|*" Project="Debug" />
+      <Build Solution="Debug Installer|*" Project="false" />
+      <BuildType Solution="Release|*" Project="Release" />
+      <BuildType Solution="Release R2023|*" Project="Release" />
+      <Build Solution="Release R2023|*" Project="false" />
+      <BuildType Solution="Release R2024|*" Project="Release" />
+      <Build Solution="Release R2024|*" Project="false" />
+      <BuildType Solution="Release R2025|*" Project="Release" />
+      <Build Solution="Release R2025|*" Project="false" />
+      <BuildType Solution="Release R2026|*" Project="Release" />
+      <Build Solution="Release R2026|*" Project="false" />
+      <BuildType Solution="Release MSCE|*" Project="Release MSCE" />
+      <BuildType Solution="Release MS2025|*" Project="Release MS2025" />
+      <BuildType Solution="Release MS2026|*" Project="Release MS2026" />
+      <BuildType Solution="Release IfcValidator|*" Project="Release" />
+      <Build Solution="Release IfcValidator|*" Project="false" />
+      <BuildType Solution="Release Installer|*" Project="Release" />
+      <Build Solution="Release Installer|*" Project="false" />
+    </Project>
   </Folder>
   <Folder Name="/installers/">
-    <Project Path="installers/Spark.Tag4D.Setup/Spark.Tag4D.Setup.csproj" />
+    <Project Path="installers/Spark.Tag4D.Setup/Spark.Tag4D.Setup.csproj">
+      <BuildType Solution="Debug|*" Project="Debug" />
+      <BuildType Solution="Debug R2023|*" Project="Debug" />
+      <Build Solution="Debug R2023|*" Project="false" />
+      <BuildType Solution="Debug R2024|*" Project="Debug" />
+      <Build Solution="Debug R2024|*" Project="false" />
+      <BuildType Solution="Debug R2025|*" Project="Debug" />
+      <Build Solution="Debug R2025|*" Project="false" />
+      <BuildType Solution="Debug R2026|*" Project="Debug" />
+      <Build Solution="Debug R2026|*" Project="false" />
+      <BuildType Solution="Debug MSCE|*" Project="Debug" />
+      <Build Solution="Debug MSCE|*" Project="false" />
+      <BuildType Solution="Debug MS2025|*" Project="Debug" />
+      <Build Solution="Debug MS2025|*" Project="false" />
+      <BuildType Solution="Debug MS2026|*" Project="Debug" />
+      <Build Solution="Debug MS2026|*" Project="false" />
+      <BuildType Solution="Debug IfcValidator|*" Project="Debug" />
+      <Build Solution="Debug IfcValidator|*" Project="false" />
+      <BuildType Solution="Debug Installer|*" Project="Debug" />
+      <BuildType Solution="Release|*" Project="Release" />
+      <BuildType Solution="Release R2023|*" Project="Release" />
+      <Build Solution="Release R2023|*" Project="false" />
+      <BuildType Solution="Release R2024|*" Project="Release" />
+      <Build Solution="Release R2024|*" Project="false" />
+      <BuildType Solution="Release R2025|*" Project="Release" />
+      <Build Solution="Release R2025|*" Project="false" />
+      <BuildType Solution="Release R2026|*" Project="Release" />
+      <Build Solution="Release R2026|*" Project="false" />
+      <BuildType Solution="Release MSCE|*" Project="Release" />
+      <Build Solution="Release MSCE|*" Project="false" />
+      <BuildType Solution="Release MS2025|*" Project="Release" />
+      <Build Solution="Release MS2025|*" Project="false" />
+      <BuildType Solution="Release MS2026|*" Project="Release" />
+      <Build Solution="Release MS2026|*" Project="false" />
+      <BuildType Solution="Release IfcValidator|*" Project="Release" />
+      <Build Solution="Release IfcValidator|*" Project="false" />
+      <BuildType Solution="Release Installer|*" Project="Release" />
+    </Project>
   </Folder>
   <Folder Name="/tests/">
-    <Project Path="tests/Spark.Tag4D.Core.Tests/Spark.Tag4D.Core.Tests.csproj" />
+    <Project Path="tests/Spark.Tag4D.Core.Tests/Spark.Tag4D.Core.Tests.csproj">
+      <BuildType Solution="Debug|*" Project="Debug" />
+      <BuildType Solution="Debug R2023|*" Project="Debug" />
+      <BuildType Solution="Debug R2024|*" Project="Debug" />
+      <BuildType Solution="Debug R2025|*" Project="Debug" />
+      <BuildType Solution="Debug R2026|*" Project="Debug" />
+      <BuildType Solution="Debug MSCE|*" Project="Debug" />
+      <BuildType Solution="Debug MS2025|*" Project="Debug" />
+      <BuildType Solution="Debug MS2026|*" Project="Debug" />
+      <BuildType Solution="Debug IfcValidator|*" Project="Debug" />
+      <BuildType Solution="Debug Installer|*" Project="Debug" />
+      <Build Solution="Debug Installer|*" Project="false" />
+      <BuildType Solution="Release|*" Project="Release" />
+      <BuildType Solution="Release R2023|*" Project="Release" />
+      <BuildType Solution="Release R2024|*" Project="Release" />
+      <BuildType Solution="Release R2025|*" Project="Release" />
+      <BuildType Solution="Release R2026|*" Project="Release" />
+      <BuildType Solution="Release MSCE|*" Project="Release" />
+      <BuildType Solution="Release MS2025|*" Project="Release" />
+      <BuildType Solution="Release MS2026|*" Project="Release" />
+      <BuildType Solution="Release IfcValidator|*" Project="Release" />
+      <BuildType Solution="Release Installer|*" Project="Release" />
+      <Build Solution="Release Installer|*" Project="false" />
+    </Project>
   </Folder>
 </Solution>

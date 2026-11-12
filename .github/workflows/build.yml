@@ -154,9 +154,8 @@ jobs:
           if-no-files-found: error
 
   # ------------------------------------------------------------------------------------------------
-  # MicroStation add-in. MicroStation's assemblies cannot be restored from NuGet and are licensed, so they are
-  # downloaded from a private location configured in the repository secret MICROSTATION_ASSEMBLIES_URL:
-  # a zip that mirrors "C:\Program Files\Bentley\MicroStation 2025\MicroStation".
+  # MicroStation add-in. One net48 build serves MicroStation CE, 2025 and 2026; the Bentley API comes from NuGet
+  # (compile-time only), so no MicroStation installation is needed on the runner.
   # ------------------------------------------------------------------------------------------------
   microstation:
     needs: version
@@ -166,34 +165,11 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 9.0.x
-      - name: Fetch MicroStation assemblies
-        id: fetch
-        shell: pwsh
-        env:
-          MICROSTATION_ASSEMBLIES_URL: ${{ secrets.MICROSTATION_ASSEMBLIES_URL }}
-          INSTALLER_REQUIRED: ${{ needs.version.outputs.build_installers }}
-        run: |
-          if (-not $env:MICROSTATION_ASSEMBLIES_URL) {
-            if ($env:INSTALLER_REQUIRED -eq 'true') {
-              throw "Repository secret MICROSTATION_ASSEMBLIES_URL is not set. It must point to a zip of the MicroStation 2025 program folder."
-            }
-            Write-Host "::notice::MICROSTATION_ASSEMBLIES_URL is not set - the MicroStation add-in is not built in this run."
-            "available=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-            return
-          }
-          $zip = Join-Path $env:RUNNER_TEMP "mstn.zip"
-          Invoke-WebRequest -Uri $env:MICROSTATION_ASSEMBLIES_URL -OutFile $zip
-          $dir = Join-Path $env:RUNNER_TEMP "mstn"
-          Expand-Archive $zip $dir -Force
-          "MICROSTATION_DIR=$dir" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
-          "available=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
       - name: Build MicroStation add-in
-        if: steps.fetch.outputs.available == 'true'
         run: >
           dotnet build src/Spark.Tag4D.Microstation -c $env:CONFIGURATION
-          -p:MicroStationDir="$env:MICROSTATION_DIR" -p:Version=${{ needs.version.outputs.version }}
+          -p:Version=${{ needs.version.outputs.version }}
       - uses: actions/upload-artifact@v4
-        if: steps.fetch.outputs.available == 'true'
         with:
           name: microstation
           path: artifacts/package/Spark.Tag4D.Microstation

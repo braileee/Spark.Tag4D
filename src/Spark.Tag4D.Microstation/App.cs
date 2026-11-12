@@ -44,6 +44,23 @@ namespace Spark.Tag4D.Microstation
         public List<PropertyValueMatch> PropertyValueExactMatches { get; private set; } = new List<PropertyValueMatch>();
         public List<PickList> PickLists { get; private set; } = new List<PickList>();
 
+        static App()
+        {
+            // WPF resolves pack://application:,,,/Spark.Tag4D.UI;component/... by assembly name; make sure the sibling
+            // assemblies in the add-in folder can be found even if MS_ADDIN_DEPENDENCYPATH does not cover them.
+            AppDomain.CurrentDomain.AssemblyResolve += (sender, args) =>
+            {
+                string name = new System.Reflection.AssemblyName(args.Name).Name;
+                if (!name.StartsWith("Spark.Tag4D", StringComparison.OrdinalIgnoreCase))
+                {
+                    return null;
+                }
+
+                string path = Path.Combine(AssemblyUtils.GetFolder(typeof(App)), name + ".dll");
+                return File.Exists(path) ? System.Reflection.Assembly.LoadFrom(path) : null;
+            };
+        }
+
         public App(System.IntPtr mdlDesc) : base(mdlDesc)
         {
             s_instance = this;

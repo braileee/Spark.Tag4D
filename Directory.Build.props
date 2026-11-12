@@ -19,6 +19,27 @@
     <NuGetAudit>true</NuGetAudit>
   </PropertyGroup>
 
+  <!--
+    Solution configurations are named "<Flavor> <Target>", e.g. "Debug R2025", "Release MS2026", "Debug IfcValidator".
+    BuildFlavor is the Debug/Release part; the Revit and MicroStation projects read the target part (see build/*.props).
+    The SDK only recognises the plain names "Debug" and "Release", so the flavor defaults are applied here.
+  -->
+  <PropertyGroup>
+    <BuildFlavor Condition="$(Configuration.StartsWith('Release'))">Release</BuildFlavor>
+    <BuildFlavor Condition="'$(BuildFlavor)' == ''">Debug</BuildFlavor>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(BuildFlavor)' == 'Debug'">
+    <Optimize>false</Optimize>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>portable</DebugType>
+    <DefineConstants>$(DefineConstants);DEBUG;TRACE</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(BuildFlavor)' == 'Release'">
+    <Optimize>true</Optimize>
+    <DebugType>portable</DebugType>
+    <DefineConstants>$(DefineConstants);TRACE</DefineConstants>
+  </PropertyGroup>
+
   <!-- Build output lives in <repo>/artifacts, keeping source folders clean. -->
   <PropertyGroup>
     <UseArtifactsOutput>true</UseArtifactsOutput>

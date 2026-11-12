@@ -1,11 +1,26 @@
 {
   "profiles": {
-    "R2023": {
+    "Revit (auto - year of the active configuration)": {
+      "commandName": "Executable",
+      "executablePath": "C:\\Program Files\\Autodesk\\Revit $(RevitVersion)\\Revit.exe",
+      "commandLineArgs": "/language ENU"
+    },
+    "Revit 2023": {
       "commandName": "Executable",
       "executablePath": "C:\\Program Files\\Autodesk\\Revit 2023\\Revit.exe",
       "commandLineArgs": "/language ENU"
     },
-    "R2026": {
+    "Revit 2024": {
+      "commandName": "Executable",
+      "executablePath": "C:\\Program Files\\Autodesk\\Revit 2024\\Revit.exe",
+      "commandLineArgs": "/language ENU"
+    },
+    "Revit 2025": {
+      "commandName": "Executable",
+      "executablePath": "C:\\Program Files\\Autodesk\\Revit 2025\\Revit.exe",
+      "commandLineArgs": "/language ENU"
+    },
+    "Revit 2026": {
       "commandName": "Executable",
       "executablePath": "C:\\Program Files\\Autodesk\\Revit 2026\\Revit.exe",
       "commandLineArgs": "/language ENU"

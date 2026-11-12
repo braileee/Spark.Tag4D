@@ -1,9 +1,24 @@
 {
   "profiles": {
-    "Microstation": {
+    "MicroStation (auto - version of the active configuration)": {
       "commandName": "Executable",
-      "executablePath": "C:\\Program Files\\Bentley\\MicroStation 2025\\MicroStation\\microstation.exe",
-      "workingDirectory": "C:\\Program Files\\Bentley\\MicroStation 2025\\MicroStation\\"
+      "executablePath": "$(MicroStationInstallDir)\MicroStation.exe",
+      "workingDirectory": "$(MicroStationInstallDir)\\"
+    },
+    "MicroStation CE": {
+      "commandName": "Executable",
+      "executablePath": "C:\Program Files\Bentley\MicroStation CE\MicroStation\MicroStation.exe",
+      "workingDirectory": "C:\Program Files\Bentley\MicroStation CE\MicroStation\\"
+    },
+    "MicroStation 2025": {
+      "commandName": "Executable",
+      "executablePath": "C:\Program Files\Bentley\MicroStation 2025\MicroStation\MicroStation.exe",
+      "workingDirectory": "C:\Program Files\Bentley\MicroStation 2025\MicroStation\\"
+    },
+    "MicroStation 2026": {
+      "commandName": "Executable",
+      "executablePath": "C:\Program Files\Bentley\MicroStation 2026\MicroStation\MicroStation.exe",
+      "workingDirectory": "C:\Program Files\Bentley\MicroStation 2026\MicroStation\\"
     }
   }
 }

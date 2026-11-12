@@ -1,9 +1,15 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
+  <Import Project="..\..\build\MicroStation.props" />
+
   <!--
-    MicroStation add-in. MicroStation's assemblies are not published on NuGet, so they are referenced
-    from an installation (or an extracted copy of one, which is what CI uses):
-        dotnet build -p:MicroStationDir="C:\Program Files\Bentley\MicroStation 2025\MicroStation"
+    MicroStation add-in for MicroStation CE (10.17), 2025 and 2026 - all three run managed add-ins on .NET Framework,
+    so one net48 build serves every version. The Bentley assemblies come from NuGet (compile-time only); MicroStation
+    supplies the real ones at run time.
+
+    Pick the target with a solution configuration ("Debug MSCE", "Debug MS2025", "Debug MS2026", ...) or with
+        dotnet build -p:MicroStationVersion=2026      (CE | 2025 | 2026)
+    A Debug build is also installed into the matching MicroStation (see Deploy target below), so F5 just works.
   -->
   <PropertyGroup>
     <TargetFramework>net48</TargetFramework>
@@ -12,8 +18,6 @@
     <AssemblyName>Spark.Tag4D.Microstation</AssemblyName>
     <Nullable>disable</Nullable>
     <PlatformTarget>x64</PlatformTarget>
-    <MicroStationDir Condition="'$(MicroStationDir)' == ''">C:\Program Files\Bentley\MicroStation 2025\MicroStation</MicroStationDir>
-    <ArtifactsPivots>$(Configuration.ToLowerInvariant())_ms2025</ArtifactsPivots>
   </PropertyGroup>
 
   <ItemGroup>
@@ -23,47 +27,54 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Bentley.DgnPlatformNET, Bentley.MicroStation, Bentley.Interop.MicroStationDGN, ... : never copied to the output. -->
+    <PackageReference Include="Speckle.MicroStation.API" IncludeAssets="compile" PrivateAssets="all" />
+    <Reference Include="System.Windows.Forms" />
+  </ItemGroup>
+
+  <ItemGroup>
     <EmbeddedResource Include="commands.xml" LogicalName="CommandTable.xml" />
   </ItemGroup>
 
-  <!-- Bentley assemblies: compile-time only, MicroStation provides them at run time. -->
+  <!-- Ribbon definition and its icons travel next to the add-in (the configuration file points MicroStation at them). -->
   <ItemGroup>
-    <Reference Include="Bentley.DgnDisplayNET">
-      <HintPath>$(MicroStationDir)\Bentley.DgnDisplayNet.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="Bentley.DgnPlatformNET">
-      <HintPath>$(MicroStationDir)\Bentley.DgnPlatformNET.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="Bentley.Interop.MicroStationDGN">
-      <HintPath>$(MicroStationDir)\Assemblies\Bentley.Interop.MicroStationDGN.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="Bentley.Platform">
-      <HintPath>$(MicroStationDir)\Assemblies\ECFramework\Bentley.Platform.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="Bentley.ECObjects3">
-      <HintPath>$(MicroStationDir)\Assemblies\ECFramework\Bentley.ECObjects3.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="System.Windows.Forms" />
-    <Reference Include="ustation">
-      <HintPath>$(MicroStationDir)\ustation.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
+    <None Include="Ribbon\Spark.Tag4D.ribbon.xml" Link="Spark.Tag4D.ribbon.xml" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Icons\**\*" Link="Icons\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
-  <!-- Assemble the folder that the installer packages: the add-in, its dependencies and the default settings. -->
+  <!-- Assemble the folder that the installer packages: the add-in, its dependencies, ribbon and icons. -->
   <Target Name="StageMdlApp" AfterTargets="Build">
     <PropertyGroup>
       <StageDir>$(MSBuildProjectDirectory)\..\..\artifacts\package\Spark.Tag4D.Microstation</StageDir>
     </PropertyGroup>
     <ItemGroup>
       <StageFile Include="$(OutDir)**\*.*" Exclude="$(OutDir)**\*.pdb;$(OutDir)**\*.xml" />
+      <StageFile Include="$(OutDir)Spark.Tag4D.ribbon.xml" />
     </ItemGroup>
     <Copy SourceFiles="@(StageFile)" DestinationFiles="@(StageFile->'$(StageDir)\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+  </Target>
+
+  <!--
+    Developer loop: copy the build to %LOCALAPPDATA%\Spark.Tag4D\MicroStation\<version> and drop Spark.Tag4D.cfg into the
+    Organization folder of the matching MicroStation, which makes MicroStation load the add-in (and its ribbon tab)
+    on every start. Skipped when that MicroStation is not installed. Opt out with -p:DeployToMicroStation=false.
+  -->
+  <Target Name="DeployToMicroStation" AfterTargets="StageMdlApp" Condition="'$(DeployToMicroStation)' == 'true' And '$(OS)' == 'Windows_NT' And Exists('$(MicroStationOrganizationDir)')">
+    <PropertyGroup>
+      <DevDeployDir>$(LOCALAPPDATA)\Spark.Tag4D\MicroStation\$(MicroStationVersion)</DevDeployDir>
+      <DevDeployDirCfg>$(DevDeployDir.Replace('\', '/'))/</DevDeployDirCfg>
+    </PropertyGroup>
+    <ItemGroup>
+      <DevDeployFile Include="$(OutDir)**\*.*" Exclude="$(OutDir)**\*.pdb" />
+      <DevCfgLine Include="# Spark.Tag4D development build ($(Configuration)) - written by the DeployToMicroStation build target" />
+      <DevCfgLine Include="MS_ADDIN_DEPENDENCYPATH > $(DevDeployDirCfg)" />
+      <DevCfgLine Include="MS_ADDINPATH            > $(DevDeployDirCfg)" />
+      <DevCfgLine Include="MS_DGNAPPS              > Spark.Tag4D.Microstation" />
+      <DevCfgLine Include="MS_RIBBONXML            > $(DevDeployDirCfg)Spark.Tag4D.ribbon.xml" />
+      <DevCfgLine Include="MS_ICONPATH             > $(DevDeployDirCfg)Icons/" />
+    </ItemGroup>
+    <Copy SourceFiles="@(DevDeployFile)" DestinationFiles="@(DevDeployFile->'$(DevDeployDir)\%(RecursiveDir)%(Filename)%(Extension)')" ContinueOnError="WarnAndContinue" />
+    <WriteLinesToFile File="$(MicroStationOrganizationDir)\Spark.Tag4D.cfg" Lines="@(DevCfgLine)" Overwrite="true" ContinueOnError="WarnAndContinue" />
   </Target>
 
 </Project>
