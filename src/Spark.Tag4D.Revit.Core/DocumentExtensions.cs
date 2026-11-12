@@ -24,7 +24,7 @@ namespace Spark.Tag4D.Revit.Core
             {
                 if(excludedCategories != null)
                 {
-#if DEBUGREVIT2026
+#if REVIT2024 || REVIT2025 || REVIT2026
                     BuiltInCategory builtInCategory = (BuiltInCategory)e.Category.Id.Value;
 #else
                     BuiltInCategory builtInCategory = (BuiltInCategory)e.Category.Id.IntegerValue;
