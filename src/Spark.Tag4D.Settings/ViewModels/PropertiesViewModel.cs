@@ -4,18 +4,13 @@ using Spark.Tag4D.Core.Models;
 using Spark.Tag4D.Settings.Models;
 using Spark.Tag4D.Core.Mvvm;
 
-using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows;
 
 namespace Spark.Tag4D.Settings.ViewModels
 {
-    public class PropertiesViewModel : ObservableObject
+    public class PropertiesViewModel : SettingsPageViewModel
     {
         public ObservableCollection<PropertySetItemObservable> PropertySets { get; }
        = new ObservableCollection<PropertySetItemObservable>();
@@ -27,24 +22,9 @@ namespace Spark.Tag4D.Settings.ViewModels
         public RelayCommand<PropertyItemObservable> RemovePropertyCommand { get; }
         public SettingsRoot SettingsRoot { get; }
 
+        public override string Title => "Properties";
 
-        public RelayCommand SaveCommand { get; }
-
-        private bool _hasUnsavedChanges;
-        public bool HasUnsavedChanges
-        {
-            get => _hasUnsavedChanges;
-            set
-            {
-                if (SetProperty(ref _hasUnsavedChanges, value))
-                {
-                    SaveCommand?.RaiseCanExecuteChanged();
-                }
-            }
-        }
-
-        private readonly string _excelFilePath;
-
+        public override string SheetInfo => $"Sheet: {SettingsRoot.ExcelSettings.PropertiesSheet.SheetName}";
 
         public PropertiesViewModel(SettingsRoot settingsRoot)
         {
@@ -72,77 +52,60 @@ namespace Spark.Tag4D.Settings.ViewModels
                     set.Properties.Add(new PropertyItemObservable
                     {
                         PropertyName = prop.PropertyName,
-                        DataType = Constants.DataTypes.FirstOrDefault(item => item == prop.DataType),
+                        DataType = Constants.DataTypes.FirstOrDefault(dataType => dataType == prop.DataType),
                     });
                 }
             }
-
 
             foreach (var set in PropertySets)
             {
                 HookSet(set);
             }
 
-            PropertySets.CollectionChanged += (s, e) => HasUnsavedChanges = true;
-
-
-            SaveCommand = new RelayCommand(Save, () => HasUnsavedChanges);
-
+            PropertySets.CollectionChanged += (s, e) => MarkDirty();
+            IsDirty = false;
         }
 
         private void HookSet(PropertySetItemObservable set)
         {
-            set.PropertyChanged += (s, e) => HasUnsavedChanges = true;
-
-            set.Properties.CollectionChanged += (s, e) => HasUnsavedChanges = true;
+            set.PropertyChanged += (s, e) => MarkDirty();
+            set.Properties.CollectionChanged += (s, e) => MarkDirty();
 
             foreach (var prop in set.Properties)
             {
-                prop.PropertyChanged += (s, e) => HasUnsavedChanges = true;
+                prop.PropertyChanged += (s, e) => MarkDirty();
             }
         }
 
-
-        private void Save()
+        public override bool Save()
         {
-            try
-            {
-                string excelFilePath = ExcelDataLoader.LoadOrPromptExcelFilePath(SettingsRoot.ExcelSettings.FileLinkSettings);
+            string excelFilePath = ExcelDataLoader.LoadOrPromptExcelFilePath(SettingsRoot.ExcelSettings.FileLinkSettings);
 
-                ExcelDataLoader.SavePropertySetItems(
-                    excelFilePath,
-                    SettingsRoot.ExcelSettings.PropertiesSheet,
-                    PropertySets.Select(s => new PropertySetItem
+            ExcelDataLoader.SavePropertySetItems(
+                excelFilePath,
+                SettingsRoot.ExcelSettings.PropertiesSheet,
+                PropertySets.Select(s => new PropertySetItem
+                {
+                    PropertySetName = s.Name,
+                    PropertyItems = s.Properties.Select(p => new PropertyItem
                     {
-                        PropertySetName = s.Name,
-                        PropertyItems = s.Properties.Select(p => new PropertyItem
-                        {
-                            PropertyName = p.PropertyName,
-                            DataType = p.DataType
-                        }).ToList()
+                        PropertyName = p.PropertyName,
+                        DataType = p.DataType
                     }).ToList()
-                );
+                }).ToList()
+            );
 
-                HasUnsavedChanges = false;
-
-                MessageBox.Show("Properties saved successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
-            }
-            catch (Exception)
-            {
-                MessageBox.Show("An error occurred while saving the properties.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
+            IsDirty = false;
+            return true;
         }
-
 
         public string[] DataTypes => Constants.DataTypes;
 
         private void AddPropertySet()
         {
-
             var set = new PropertySetItemObservable { Name = "NewSet" };
             HookSet(set);
             PropertySets.Add(set);
-            HasUnsavedChanges = true;
         }
 
         private void RemovePropertySet(PropertySetItemObservable set)
@@ -152,7 +115,6 @@ namespace Spark.Tag4D.Settings.ViewModels
 
         private void AddProperty(PropertySetItemObservable set)
         {
-
             if (set == null) return;
 
             var prop = new PropertyItemObservable
@@ -161,10 +123,8 @@ namespace Spark.Tag4D.Settings.ViewModels
                 DataType = Constants.DataTypes.FirstOrDefault()
             };
 
-            prop.PropertyChanged += (s, e) => HasUnsavedChanges = true;
-
+            prop.PropertyChanged += (s, e) => MarkDirty();
             set.Properties.Add(prop);
-            HasUnsavedChanges = true;
         }
 
         private void RemoveProperty(PropertyItemObservable item)

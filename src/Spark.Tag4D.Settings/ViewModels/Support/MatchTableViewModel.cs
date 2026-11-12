@@ -40,10 +40,14 @@ namespace Spark.Tag4D.Settings.ViewModels.Support
             {
                 if (SetProperty(ref _sheetPrefix, value))
                 {
+                    OnPropertyChanged(nameof(WorksheetName));
                     _markDirty();
                 }
             }
         }
+
+        /// <summary>Name of the Excel sheet this table is stored in.</summary>
+        public string WorksheetName => $"{SheetPrefix} Match";
 
         public ObservableCollection<string>
             AvailableProperties

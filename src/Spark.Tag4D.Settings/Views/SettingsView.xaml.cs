@@ -1,18 +1,6 @@
 using Spark.Tag4D.Settings.ViewModels;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 
 namespace Spark.Tag4D.Settings.Views
 {
@@ -24,34 +12,44 @@ namespace Spark.Tag4D.Settings.Views
         public SettingsView()
         {
             InitializeComponent();
+            DataContextChanged += OnDataContextChanged;
         }
+
+        private void OnDataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
+        {
+            if (e.OldValue is SettingsViewModel oldViewModel)
+            {
+                oldViewModel.CloseRequested -= OnCloseRequested;
+            }
+
+            if (e.NewValue is SettingsViewModel newViewModel)
+            {
+                newViewModel.CloseRequested += OnCloseRequested;
+            }
+        }
+
+        // Cancel closes the window through the normal path, so the unsaved-changes question is asked in one place.
+        private void OnCloseRequested(object sender, EventArgs e) => Close();
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
+            SettingsViewModel viewModel = DataContext as SettingsViewModel;
 
-            SettingsViewModel settingsViewModel = DataContext as SettingsViewModel;
-
-            if(settingsViewModel == null)
+            if (viewModel == null || !viewModel.IsDirty)
             {
                 return;
             }
 
-            if (settingsViewModel.PropertiesViewModel.HasUnsavedChanges)
-            {
-                var result = MessageBox.Show(
-                    "You have unsaved changes. Do you want to save before closing?",
-                    "Unsaved Changes",
-                    MessageBoxButton.YesNoCancel,
-                    MessageBoxImage.Warning);
+            MessageBoxResult answer = MessageBox.Show(
+                this,
+                $"There are unsaved changes in: {viewModel.DirtySummary}.{Environment.NewLine}{Environment.NewLine}Save them before closing?",
+                "Spark.Tag4D Settings",
+                MessageBoxButton.YesNoCancel,
+                MessageBoxImage.Warning);
 
-                if (result == MessageBoxResult.Yes)
-                {
-                    settingsViewModel.PropertiesViewModel.SaveCommand.Execute(null);
-                }
-                else if (result == MessageBoxResult.Cancel)
-                {
-                    e.Cancel = true;
-                }
+            if (answer == MessageBoxResult.Cancel || (answer == MessageBoxResult.Yes && !viewModel.SaveAll()))
+            {
+                e.Cancel = true;
             }
         }
     }

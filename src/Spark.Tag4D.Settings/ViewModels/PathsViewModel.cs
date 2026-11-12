@@ -24,7 +24,7 @@ namespace Spark.Tag4D.Settings.ViewModels
 
         private void OnLoadExcelCommand()
         {
-            string excelFilePath = FileDialogs.OpenFile(FileDialogs.ExcelFilter);
+            string excelFilePath = FileDialogs.OpenFileNear(FileDialogs.ExcelFilter, ExcelFilePath);
 
             if (string.IsNullOrEmpty(excelFilePath) || !File.Exists(excelFilePath))
             {
@@ -36,7 +36,7 @@ namespace Spark.Tag4D.Settings.ViewModels
 
         private void OnLoadSettingsCommand()
         {
-            string settingsFilePath = FileDialogs.OpenFile(FileDialogs.JsonFilter);
+            string settingsFilePath = FileDialogs.OpenFileNear(FileDialogs.JsonFilter, SettingsFilePath);
 
             if (string.IsNullOrEmpty(settingsFilePath) || !File.Exists(settingsFilePath))
             {

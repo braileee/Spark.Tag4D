@@ -8,107 +8,74 @@
              d:DesignHeight="450"
              d:DesignWidth="800"
              x:Name="Root">
-<UserControl.Resources>
-<ResourceDictionary>
-<ResourceDictionary.MergedDictionaries>
-<ResourceDictionary Source="pack://application:,,,/Spark.Tag4D.UI;component/Themes/Tag4D.xaml"/>
-</ResourceDictionary.MergedDictionaries>
-</ResourceDictionary>
-</UserControl.Resources>
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/Spark.Tag4D.UI;component/Themes/Tag4D.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
 
+    <DockPanel>
 
-    <Grid Margin="10">
+        <!-- Toolbar -->
+        <Border DockPanel.Dock="Top" Style="{StaticResource Toolbar}">
+            <DockPanel>
+                <Border DockPanel.Dock="Right" Style="{StaticResource SheetChip}">
+                    <TextBlock Style="{StaticResource MutedText}" Text="{Binding SheetInfo}"/>
+                </Border>
+                <StackPanel Orientation="Horizontal">
+                    <Button Style="{StaticResource ActionButton}" Content="+  Add Rule" Command="{Binding AddRowCommand}"/>
+                </StackPanel>
+            </DockPanel>
+        </Border>
 
-        <Grid.RowDefinitions>
-            <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
-        </Grid.RowDefinitions>
-
-        <DataGrid Grid.Row="0"
-                  ItemsSource="{Binding Rules}"
-                  SelectedItem="{Binding SelectedRule}"
-                  AutoGenerateColumns="False"
-                  CanUserAddRows="False"
-                  Margin="0,0,0,10">
+        <DataGrid Margin="16" ItemsSource="{Binding Rules}" AutoGenerateColumns="False" CanUserAddRows="False"
+                  VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
 
             <DataGrid.Columns>
 
-                <!-- Source Property -->
-                <DataGridTemplateColumn Header="Source Property"
-                                        Width="200">
-
+                <!-- Source property: always a drop-down, no need to select the row first -->
+                <DataGridTemplateColumn Header="Source Property" Width="*" MinWidth="180">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
-                            <TextBlock Text="{Binding SourcePropertyName}" />
+                            <ComboBox ItemsSource="{Binding DataContext.AvailableProperties, ElementName=Root}"
+                                      SelectedItem="{Binding SourcePropertyName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
-
-                    <DataGridTemplateColumn.CellEditingTemplate>
-                        <DataTemplate>
-                            <ComboBox
-                                ItemsSource="{Binding DataContext.AvailableProperties,
-                                                      ElementName=Root}"
-                                SelectedItem="{Binding SourcePropertyName,
-                                                       Mode=TwoWay,
-                                                       UpdateSourceTrigger=PropertyChanged}" />
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellEditingTemplate>
-
                 </DataGridTemplateColumn>
 
                 <!-- Function -->
-                <DataGridTextColumn Header="Function"
-                                    Width="300"
-                                    Binding="{Binding Function,
-                                                      Mode=TwoWay,
-                                                      UpdateSourceTrigger=PropertyChanged}" />
-
-                <!-- Target Property -->
-                <DataGridTemplateColumn Header="Target Property"
-                                        Width="200">
-
+                <DataGridTemplateColumn Header="Function" Width="2*" MinWidth="220">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
-                            <TextBlock Text="{Binding TargetPropertyName}" />
+                            <TextBox Text="{Binding Function, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
 
-                    <DataGridTemplateColumn.CellEditingTemplate>
+                <!-- Target property -->
+                <DataGridTemplateColumn Header="Target Property" Width="*" MinWidth="180">
+                    <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
-                            <ComboBox
-                                ItemsSource="{Binding DataContext.AvailableProperties,
-                                                      ElementName=Root}"
-                                SelectedItem="{Binding TargetPropertyName,
-                                                       Mode=TwoWay,
-                                                       UpdateSourceTrigger=PropertyChanged}" />
+                            <ComboBox ItemsSource="{Binding DataContext.AvailableProperties, ElementName=Root}"
+                                      SelectedItem="{Binding TargetPropertyName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
                         </DataTemplate>
-                    </DataGridTemplateColumn.CellEditingTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
 
+                <!-- Delete the row -->
+                <DataGridTemplateColumn Header="" Width="56">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <Button Style="{StaticResource CrossButton}" HorizontalAlignment="Center" ToolTip="Delete this rule"
+                                    Command="{Binding DataContext.RemoveRowCommand, ElementName=Root}"
+                                    CommandParameter="{Binding}"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
 
             </DataGrid.Columns>
-
         </DataGrid>
-
-        <StackPanel Grid.Row="1"
-                    Orientation="Horizontal">
-
-            <Button Content="Add"
-                    Width="100"
-                    Margin="0,0,5,0"
-                    Command="{Binding AddRowCommand}" />
-
-            <Button Style="{StaticResource DangerButton}" Content="Delete"
-                    Width="100"
-                    Margin="0,0,5,0"
-                    Command="{Binding DeleteRowCommand}" />
-
-            <Button Style="{StaticResource PrimaryButton}" Content="Save"
-                    Width="100"
-                    Command="{Binding SaveCommand}" />
-
-        </StackPanel>
-
-    </Grid>
-
+    </DockPanel>
 </UserControl>

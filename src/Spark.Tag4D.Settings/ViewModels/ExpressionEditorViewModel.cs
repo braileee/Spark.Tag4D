@@ -6,34 +6,27 @@ using Spark.Tag4D.Core.Mvvm;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
-using System.Xml.Linq;
 
 namespace Spark.Tag4D.Settings.ViewModels
 {
-    public class ExpressionEditorViewModel : ObservableObject
+    public class ExpressionEditorViewModel : SettingsPageViewModel
     {
-
         public ObservableCollection<ExpressionRuleViewModel> Rules { get; }
-            = new();
+            = new ObservableCollection<ExpressionRuleViewModel>();
 
         public ObservableCollection<string> AvailableProperties { get; }
-            = new();
-
-        private ExpressionRuleViewModel? _selectedRule;
-
-        public ExpressionRuleViewModel? SelectedRule
-        {
-            get => _selectedRule;
-            set => SetProperty(ref _selectedRule, value);
-        }
+            = new ObservableCollection<string>();
 
         public RelayCommand AddRowCommand { get; }
 
-        public RelayCommand DeleteRowCommand { get; }
+        public RelayCommand<ExpressionRuleViewModel> RemoveRowCommand { get; }
 
-        public RelayCommand SaveCommand { get; }
         public string ExcelFilePath { get; }
         public SettingsRoot SettingsRoot { get; set; }
+
+        public override string Title => "Expressions";
+
+        public override string SheetInfo => $"Sheet: {SettingsRoot.ExcelSettings.ExpressionSheet.SheetName}";
 
         public ExpressionEditorViewModel(SettingsRoot settingsRoot)
         {
@@ -49,10 +42,12 @@ namespace Spark.Tag4D.Settings.ViewModels
             }
 
             AddRowCommand = new RelayCommand(AddRow);
-            DeleteRowCommand = new RelayCommand(DeleteRow);
-            SaveCommand = new RelayCommand(Save);
+            RemoveRowCommand = new RelayCommand<ExpressionRuleViewModel>(RemoveRow);
 
             LoadRules();
+
+            Rules.CollectionChanged += (s, e) => MarkDirty();
+            IsDirty = false;
         }
 
         private void LoadRules()
@@ -61,30 +56,34 @@ namespace Spark.Tag4D.Settings.ViewModels
 
             foreach (var rule in ExcelDataLoader.LoadExpressions(ExcelFilePath, SettingsRoot.ExcelSettings.ExpressionSheet))
             {
-                var vm = new ExpressionRuleViewModel(rule);
-
-                Rules.Add(vm);
+                Rules.Add(CreateRule(new ExpressionRuleViewModel(rule)));
             }
+        }
+
+        private ExpressionRuleViewModel CreateRule(ExpressionRuleViewModel rule)
+        {
+            rule.PropertyChanged += (s, e) => MarkDirty();
+            return rule;
         }
 
         private void AddRow()
         {
-            var vm = new ExpressionRuleViewModel();
-
-            Rules.Add(vm);
+            Rules.Add(CreateRule(new ExpressionRuleViewModel()));
         }
 
-        private void DeleteRow()
+        private void RemoveRow(ExpressionRuleViewModel rule)
         {
-            if (SelectedRule != null)
+            if (rule != null)
             {
-                Rules.Remove(SelectedRule);
+                Rules.Remove(rule);
             }
         }
 
-        private void Save()
+        public override bool Save()
         {
             ExcelDataLoader.SaveRules(ExcelFilePath, SettingsRoot.ExcelSettings.ExpressionSheet, Rules.Select(x => x.ToModel()));
+            IsDirty = false;
+            return true;
         }
     }
 }

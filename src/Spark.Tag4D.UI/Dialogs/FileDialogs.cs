@@ -24,6 +24,45 @@ namespace Spark.Tag4D.UI.Dialogs
             return dialog.ShowDialog() == true ? dialog.FileName : null;
         }
 
+        /// <summary>
+        /// Opens the picker in the folder of <paramref name="currentFilePath"/> with that file pre-selected, so that
+        /// "Browse" starts where the user already is. Falls back to the desktop when the path is empty or gone.
+        /// </summary>
+        public static string OpenFileNear(string filter, string currentFilePath)
+        {
+            string directory = null;
+            string fileName = null;
+
+            if (!string.IsNullOrWhiteSpace(currentFilePath))
+            {
+                try
+                {
+                    directory = Path.GetDirectoryName(currentFilePath);
+                    fileName = Path.GetFileName(currentFilePath);
+                }
+                catch (ArgumentException)
+                {
+                    // malformed path: use the default folder
+                }
+            }
+
+            var dialog = new OpenFileDialog
+            {
+                Filter = filter,
+                InitialDirectory = !string.IsNullOrEmpty(directory) && Directory.Exists(directory)
+                    ? directory
+                    : Environment.GetFolderPath(Environment.SpecialFolder.Desktop),
+                RestoreDirectory = true
+            };
+
+            if (!string.IsNullOrEmpty(fileName) && File.Exists(currentFilePath))
+            {
+                dialog.FileName = fileName;
+            }
+
+            return dialog.ShowDialog() == true ? dialog.FileName : null;
+        }
+
         public static IReadOnlyList<string> OpenFiles(string filter, string initialDirectory = null)
         {
             var dialog = new OpenFileDialog

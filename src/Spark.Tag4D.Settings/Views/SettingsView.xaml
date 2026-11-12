@@ -1,50 +1,91 @@
 ﻿<Window x:Class="Spark.Tag4D.Settings.Views.SettingsView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:local="clr-namespace:Spark.Tag4D.Settings.Views"
-             mc:Ignorable="d" 
+             mc:Ignorable="d"
              Title="Spark.Tag4D Settings"
              Width="1100" Height="720" MinWidth="760" MinHeight="480"
              WindowStartupLocation="CenterScreen"
+             Background="#F6F8FB" Foreground="#0F172A"
+             FontFamily="Segoe UI Variable Text, Segoe UI" FontSize="13"
              Closing="Window_Closing">
-<Window.Resources>
-<ResourceDictionary>
-<ResourceDictionary.MergedDictionaries>
-<ResourceDictionary Source="pack://application:,,,/Spark.Tag4D.UI;component/Themes/Tag4D.xaml"/>
-</ResourceDictionary.MergedDictionaries>
-</ResourceDictionary>
-</Window.Resources>
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/Spark.Tag4D.UI;component/Themes/Tag4D.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
 
+    <DockPanel>
 
-    <TabControl ScrollViewer.CanContentScroll="True">
-        <TabItem Header="Paths">
-            <local:PathsView DataContext="{Binding PathsViewModel}"/>
-        </TabItem>
+        <!-- One top bar for the whole window: Save writes every tab with changes, Cancel closes (and asks first). -->
+        <Border DockPanel.Dock="Top" Background="{StaticResource SurfaceBrush}"
+                BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="20,12">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Style="{StaticResource PrimaryButton}" Content="Save" Width="96" Command="{Binding SaveCommand}"
+                            ToolTip="Write all changes back to the Excel workbook"/>
+                    <Button Content="Cancel" Width="96" Margin="8,0,0,0" Command="{Binding CancelCommand}"
+                            ToolTip="Close the settings"/>
+                </StackPanel>
 
-        <TabItem Header="Properties">
-            <local:PropertiesView DataContext="{Binding PropertiesViewModel}"/>
-        </TabItem>
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Style="{StaticResource SectionText}" FontSize="16" Text="Settings"/>
+                    <Grid Margin="0,2,0,0">
+                        <TextBlock Text="{Binding StatusText}" Foreground="{StaticResource TextMutedBrush}"/>
+                        <StackPanel Orientation="Horizontal">
+                            <StackPanel.Style>
+                                <Style TargetType="StackPanel">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsDirty}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </StackPanel.Style>
+                            <Ellipse Width="8" Height="8" Fill="#D97706" Margin="0,1,8,0" VerticalAlignment="Center"/>
+                            <TextBlock Foreground="{StaticResource TextBrush}">
+                                <Run Text="Unsaved changes in:" FontWeight="SemiBold"/>
+                                <Run Text="{Binding DirtySummary, Mode=OneWay}"/>
+                            </TextBlock>
+                        </StackPanel>
+                    </Grid>
+                </StackPanel>
+            </DockPanel>
+        </Border>
 
-        <TabItem Header="Picklists">
-            <local:PicklistView DataContext="{Binding PicklistViewModel}"/>
-        </TabItem>
+        <TabControl>
+            <TabItem Header="Paths">
+                <local:PathsView DataContext="{Binding PathsViewModel}"/>
+            </TabItem>
 
-        <TabItem Header="Exact Matches">
-            <local:ExactMatchesView DataContext="{Binding ExactMatchesViewModel}"/>
-        </TabItem>
+            <TabItem Header="Properties">
+                <local:PropertiesView DataContext="{Binding PropertiesViewModel}"/>
+            </TabItem>
 
-        <TabItem Header="Matches">
-            <local:MatchesView DataContext="{Binding MatchesViewModel}"/>
-        </TabItem>
-        
-        <TabItem Header="Expressions">
-            <local:ExpressionEditorView DataContext="{Binding ExpressionEditorViewModel}"/>
-        </TabItem>
-        
-        <TabItem Header="Composed Properties">
-            <local:ComposedView DataContext="{Binding ComposedViewModel}"/>
-        </TabItem>
-    </TabControl>
+            <TabItem Header="Picklists">
+                <local:PicklistView DataContext="{Binding PicklistViewModel}"/>
+            </TabItem>
+
+            <TabItem Header="Exact Matches">
+                <local:ExactMatchesView DataContext="{Binding ExactMatchesViewModel}"/>
+            </TabItem>
+
+            <TabItem Header="Matches">
+                <local:MatchesView DataContext="{Binding MatchesViewModel}"/>
+            </TabItem>
+
+            <TabItem Header="Expressions">
+                <local:ExpressionEditorView DataContext="{Binding ExpressionEditorViewModel}"/>
+            </TabItem>
+
+            <TabItem Header="Composed Properties">
+                <local:ComposedView DataContext="{Binding ComposedViewModel}"/>
+            </TabItem>
+        </TabControl>
+    </DockPanel>
 </Window>

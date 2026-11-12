@@ -13,34 +13,38 @@
         </ResourceDictionary>
     </UserControl.Resources>
 
-    <StackPanel Margin="24">
-        <TextBlock Style="{StaticResource TitleText}" Text="Source files"/>
-        <TextBlock Style="{StaticResource MutedText}" Margin="0,4,0,16"
-                   Text="Where Spark.Tag4D reads its rules and property definitions from."/>
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
+        <StackPanel Margin="24">
+            <TextBlock Style="{StaticResource TitleText}" Text="Source files"/>
+            <TextBlock Style="{StaticResource MutedText}" Margin="0,4,0,16"
+                       Text="Where Spark.Tag4D reads its rules and property definitions from. Changes here apply immediately."/>
 
-        <Border Style="{StaticResource Card}">
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                </Grid.RowDefinitions>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
+            <Border Style="{StaticResource Card}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
 
-                <Label Grid.Row="0" Grid.ColumnSpan="2" Content="Settings file (JSON)" Padding="0,0,0,4"/>
-                <TextBox Grid.Row="1" IsReadOnly="True" Text="{Binding SettingsFilePath, Mode=OneWay}"/>
-                <Button Grid.Row="1" Grid.Column="1" Margin="8,0,0,0" Content="Browse..."
-                        Command="{Binding LoadSettingsCommand}"/>
+                    <Label Grid.Row="0" Grid.ColumnSpan="2" Content="Settings file (JSON)" Padding="0,0,0,4"/>
+                    <TextBox Grid.Row="1" IsReadOnly="True" Text="{Binding SettingsFilePath, Mode=OneWay}"/>
+                    <Button Grid.Row="1" Grid.Column="1" Margin="8,0,0,0" Content="Browse..."
+                            ToolTip="Opens the folder of the current file"
+                            Command="{Binding LoadSettingsCommand}"/>
 
-                <Label Grid.Row="2" Grid.ColumnSpan="2" Content="Parameters workbook (XLSX)" Padding="0,16,0,4"/>
-                <TextBox Grid.Row="3" IsReadOnly="True" Text="{Binding ExcelFilePath, Mode=OneWay}"/>
-                <Button Grid.Row="3" Grid.Column="1" Margin="8,0,0,0" Content="Browse..."
-                        Command="{Binding LoadExcelCommand}"/>
-            </Grid>
-        </Border>
-    </StackPanel>
+                    <Label Grid.Row="2" Grid.ColumnSpan="2" Content="Parameters workbook (XLSX)" Padding="0,16,0,4"/>
+                    <TextBox Grid.Row="3" IsReadOnly="True" Text="{Binding ExcelFilePath, Mode=OneWay}"/>
+                    <Button Grid.Row="3" Grid.Column="1" Margin="8,0,0,0" Content="Browse..."
+                            ToolTip="Opens the folder of the current file"
+                            Command="{Binding LoadExcelCommand}"/>
+                </Grid>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
 </UserControl>
