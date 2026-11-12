@@ -11,12 +11,18 @@ namespace Spark.Tag4D.Revit.App.Models
         public DataTemplate IntTemplate { get; set; }
         public DataTemplate BoolTemplate { get; set; }
         public DataTemplate ComboTemplate { get; set; }
+        public DataTemplate ReadOnlyTemplate { get; set; }
 
         public override DataTemplate SelectTemplate(object item, DependencyObject container)
         {
             var field = item as PropertyField;
             if (field == null)
                 return base.SelectTemplate(item, container);
+
+            if (field.IsReadOnly)
+            {
+                return ReadOnlyTemplate;
+            }
 
             switch (field.EditorType)
             {

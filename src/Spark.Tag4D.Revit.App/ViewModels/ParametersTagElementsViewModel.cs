@@ -18,6 +18,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Data;
 using System.Xml.Linq;
 
 namespace Spark.Tag4D.Revit.App.ViewModels
@@ -226,9 +227,38 @@ namespace Spark.Tag4D.Revit.App.ViewModels
                     Fields.CollectionChanged += FieldsCollectionChanged;
                 }
 
+                FieldsView = fields == null ? null : CollectionViewSource.GetDefaultView(fields);
+                if (FieldsView != null)
+                {
+                    FieldsView.Filter = MatchesSearch;
+                }
+
+                OnPropertyChanged(nameof(FieldsView));
                 OnPropertyChanged();
             }
         }
+        /// <summary>The parameters shown in the pane, narrowed down by <see cref="SearchText"/>.</summary>
+        public ICollectionView FieldsView { get; private set; }
+
+        public string SearchText
+        {
+            get { return searchText; }
+            set
+            {
+                if (SetProperty(ref searchText, value))
+                {
+                    FieldsView?.Refresh();
+                }
+            }
+        }
+
+        private bool MatchesSearch(object item)
+        {
+            var field = item as PropertyField;
+            return field != null
+                && (string.IsNullOrWhiteSpace(searchText) || field.Name.IndexOf(searchText.Trim(), StringComparison.OrdinalIgnoreCase) >= 0);
+        }
+
         public RelayCommand ApplyCommand { get; }
         public RelayCommand UpdateValuesCommand { get; }
         public ParametersTagElementsEventHandler ParametersTagElementsEventHandler { get; }
@@ -247,6 +277,7 @@ namespace Spark.Tag4D.Revit.App.ViewModels
             }
         }
 
+        private string searchText = string.Empty;
         private string selectedElementsInfo;
         private ObservableCollection<PropertyField> fields = new ObservableCollection<PropertyField>();
 

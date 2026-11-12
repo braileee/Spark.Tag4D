@@ -1,25 +1,21 @@
 ﻿using Autodesk.Revit.ApplicationServices;
 using Autodesk.Revit.DB;
-using Autodesk.Revit.UI;
 using Spark.Tag4D.Core.Models;
 using Spark.Tag4D.Revit.Core;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 
 namespace Spark.Tag4D.Revit.App.Models
 {
-    public class ProjectParametersGeneration
+    /// <summary>Creates and removes the project parameters that back the IFC properties of the workbook.</summary>
+    public static class ProjectParametersGeneration
     {
-        public static void CreateProjectParameters(
-    Document doc,
-    List<PropertySetItem> propertySets)
+        public static void CreateProjectParameters(Document doc, List<PropertySetItem> propertySets, OperationProgress progress)
         {
-            var app = doc.Application;
-
-            List<BuiltInCategory> excludedCategories = new List<BuiltInCategory> {
+            List<BuiltInCategory> excludedCategories = new List<BuiltInCategory>
+            {
                 BuiltInCategory.OST_ProjectInformation,
                 BuiltInCategory.OST_HVAC_Zones,
                 BuiltInCategory.OST_Materials,
@@ -27,70 +23,157 @@ namespace Spark.Tag4D.Revit.App.Models
                 BuiltInCategory.OST_DetailComponents,
             };
 
-            var categories = doc.GetUsedBoundModelCategories(excludedCategories);
+            List<PropertyItem> properties = propertySets.SelectMany(ps => ps.PropertyItems).ToList();
+            progress.Message($"Loading {properties.Count} parameters into '{doc.Title}'...");
 
-            using (var tx = new Transaction(doc, "Create Project Parameters"))
+            CategorySet categories = doc.GetUsedBoundModelCategories(excludedCategories);
+            progress.Message($"Binding to {categories.Size} model categories used in the project.");
+
+            int created = 0, skipped = 0, failed = 0, done = 0;
+
+            using (Transaction tx = new Transaction(doc, "Create Project Parameters"))
             {
                 tx.Start();
+                HashSet<string> existing = GetExistingNames(doc);
 
-                List<PropertyItem> properties = propertySets.SelectMany(ps => ps.PropertyItems).ToList();
-
-                foreach (var prop in properties)
+                foreach (PropertyItem property in properties)
                 {
-                    if (ProjectParameterExists(doc, prop.PropertyName))
+                    done++;
+                    progress.Report(done, properties.Count);
+
+                    if (existing.Contains(property.PropertyName))
                     {
+                        skipped++;
+                        progress.Message($"{property.PropertyName} - already exists, skipped.");
                         continue;
                     }
 
-                    var specType = RevitTypeMapper.GetSpecType(prop.DataType);
-                    RawCreateProjectParameter(app, prop.PropertyName, specType, true, categories, GroupTypeId.Ifc, true);
+                    try
+                    {
+                        ForgeTypeId specType = RevitTypeMapper.GetSpecType(property.DataType);
+                        if (RawCreateProjectParameter(doc, property.PropertyName, specType, true, categories, GroupTypeId.Ifc, true))
+                        {
+                            created++;
+                            existing.Add(property.PropertyName);
+                            progress.Message($"{property.PropertyName} - created ({property.DataType}).", LogLevel.Success);
+                        }
+                        else
+                        {
+                            failed++;
+                            progress.Message($"{property.PropertyName} - Revit refused to create the parameter.", LogLevel.Error);
+                        }
+                    }
+                    catch (Exception exception)
+                    {
+                        failed++;
+                        progress.Message($"{property.PropertyName} - {exception.Message}", LogLevel.Error);
+                    }
                 }
 
                 tx.Commit();
             }
+
+            progress.Message(
+                $"Done: {created} created, {skipped} already existed, {failed} failed.",
+                failed > 0 ? LogLevel.Warning : LogLevel.Success);
         }
 
-        private static bool ProjectParameterExists(Document doc, string name)
+        public static void DeleteProjectParameters(Document doc, List<PropertySetItem> propertySets, OperationProgress progress)
         {
-            var map = doc.ParameterBindings;
-            var it = map.ForwardIterator();
-            it.Reset();
+            HashSet<string> names = new HashSet<string>(
+                propertySets.SelectMany(ps => ps.PropertyItems).Select(p => p.PropertyName),
+                StringComparer.OrdinalIgnoreCase);
 
-            while (it.MoveNext())
+            progress.Message($"Removing the workbook parameters from '{doc.Title}'...");
+
+            List<Definition> toRemove = new List<Definition>();
+            DefinitionBindingMapIterator iterator = doc.ParameterBindings.ForwardIterator();
+            iterator.Reset();
+            while (iterator.MoveNext())
             {
-                Definition def = it.Key;
-                if (def != null && def.Name.Equals(name, StringComparison.OrdinalIgnoreCase))
-                    return true;
+                Definition definition = iterator.Key;
+                if (definition != null && names.Contains(definition.Name))
+                {
+                    toRemove.Add(definition);
+                }
             }
 
-            return false;
+            if (toRemove.Count == 0)
+            {
+                progress.Message("None of the workbook parameters exist in this project.", LogLevel.Warning);
+                return;
+            }
+
+            int removed = 0, failed = 0, done = 0;
+
+            using (Transaction tx = new Transaction(doc, "Delete Project Parameters"))
+            {
+                tx.Start();
+
+                foreach (Definition definition in toRemove)
+                {
+                    done++;
+                    progress.Report(done, toRemove.Count);
+
+                    if (doc.ParameterBindings.Remove(definition))
+                    {
+                        removed++;
+                        progress.Message($"{definition.Name} - removed.", LogLevel.Success);
+                    }
+                    else
+                    {
+                        failed++;
+                        progress.Message($"{definition.Name} - could not be removed.", LogLevel.Error);
+                    }
+                }
+
+                tx.Commit();
+            }
+
+            progress.Message(
+                $"Done: {removed} removed, {failed} failed.",
+                failed > 0 ? LogLevel.Warning : LogLevel.Success);
         }
 
-
-        public static void RawCreateProjectParameter(Application app, string name, ForgeTypeId dataType, bool visible, CategorySet cats, ForgeTypeId groupTypeId, bool inst)
+        private static HashSet<string> GetExistingNames(Document doc)
         {
-            string oriFile = app.SharedParametersFilename;
+            HashSet<string> names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            DefinitionBindingMapIterator iterator = doc.ParameterBindings.ForwardIterator();
+            iterator.Reset();
+
+            while (iterator.MoveNext())
+            {
+                if (iterator.Key != null)
+                {
+                    names.Add(iterator.Key.Name);
+                }
+            }
+
+            return names;
+        }
+
+        private static bool RawCreateProjectParameter(Document doc, string name, ForgeTypeId dataType, bool visible, CategorySet cats, ForgeTypeId groupTypeId, bool instance)
+        {
+            Application app = doc.Application;
+            string originalFile = app.SharedParametersFilename;
             string tempFile = Path.GetTempFileName() + ".txt";
             using (File.Create(tempFile)) { }
             app.SharedParametersFilename = tempFile;
 
-            var defOptions = new ExternalDefinitionCreationOptions(name, dataType)
+            ExternalDefinition definition;
+            try
             {
-                Visible = visible
-            };
-            ExternalDefinition def = app.OpenSharedParameterFile().Groups.Create("TemporaryDefintionGroup").Definitions.Create(defOptions) as ExternalDefinition;
-
-            app.SharedParametersFilename = oriFile;
-            File.Delete(tempFile);
-
-            Autodesk.Revit.DB.Binding binding = app.Create.NewTypeBinding(cats);
-            if (inst) binding = app.Create.NewInstanceBinding(cats);
-
-            BindingMap map = (new UIApplication(app)).ActiveUIDocument.Document.ParameterBindings;
-            if (!map.Insert(def, binding, groupTypeId))
-            {
-                Trace.WriteLine($"Failed to create Project parameter '{name}' :(");
+                ExternalDefinitionCreationOptions options = new ExternalDefinitionCreationOptions(name, dataType) { Visible = visible };
+                definition = app.OpenSharedParameterFile().Groups.Create("TemporaryDefintionGroup").Definitions.Create(options) as ExternalDefinition;
             }
+            finally
+            {
+                app.SharedParametersFilename = originalFile;
+                File.Delete(tempFile);
+            }
+
+            Autodesk.Revit.DB.Binding binding = instance ? (Autodesk.Revit.DB.Binding)app.Create.NewInstanceBinding(cats) : app.Create.NewTypeBinding(cats);
+            return doc.ParameterBindings.Insert(definition, binding, groupTypeId);
         }
     }
 }
