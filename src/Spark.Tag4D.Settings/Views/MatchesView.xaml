@@ -1,11 +1,34 @@
 ﻿<UserControl x:Class="Spark.Tag4D.Settings.Views.MatchesView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:Spark.Tag4D.UI.Controls;assembly=Spark.Tag4D.UI">
     <UserControl.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="pack://application:,,,/Spark.Tag4D.UI;component/Themes/Tag4D.xaml"/>
             </ResourceDictionary.MergedDictionaries>
+
+            <!-- A cell is an editable pick list: a value can be picked from the picklist of its property or typed.
+                 Values that are not in that picklist (a typo) are marked, because they can never be selected when tagging. -->
+            <Style x:Key="MatchValueCombo" TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
+                <Setter Property="IsEditable" Value="True"/>
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding IsUnknown}" Value="True">
+                        <Setter Property="BorderBrush" Value="#D97706"/>
+                        <Setter Property="ToolTip" Value="This value is not in the picklist of the property"/>
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+
+            <Style x:Key="MatchTargetCombo" TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
+                <Setter Property="IsEditable" Value="True"/>
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding IsTargetUnknown}" Value="True">
+                        <Setter Property="BorderBrush" Value="#D97706"/>
+                        <Setter Property="ToolTip" Value="This value is not in the picklist of the target property"/>
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
         </ResourceDictionary>
     </UserControl.Resources>
 
@@ -19,6 +42,7 @@
                 </Border>
                 <StackPanel Orientation="Horizontal">
                     <Button Style="{StaticResource ActionButton}" Content="+  Add Match Table" Command="{Binding AddMatchTableCommand}"/>
+                    <controls:SearchBox Margin="16,0,0,0" Text="{Binding FilterText}" Hint="{Binding FilterHint}"/>
                 </StackPanel>
             </DockPanel>
         </Border>
@@ -50,15 +74,19 @@
                                     <Border Style="{StaticResource SheetChip}" Margin="6,0,0,0" CornerRadius="6">
                                         <TextBlock Style="{StaticResource MutedText}" Text="Match"/>
                                     </Border>
+                                    <Border Style="{StaticResource SheetChip}" Margin="6,0,0,0">
+                                        <TextBlock Style="{StaticResource MutedText}" Text="{Binding RowCountText}"/>
+                                    </Border>
                                 </StackPanel>
                             </DockPanel>
                         </Border>
 
-                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
-                            <StackPanel Margin="16" HorizontalAlignment="Left">
+                        <!-- One horizontal scroll area for header and rows; the rows scroll (and virtualize) vertically on their own. -->
+                        <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                            <DockPanel Margin="16,16,16,0" HorizontalAlignment="Left" LastChildFill="True">
 
                                 <!-- Header row: one combo per source property, then the target property -->
-                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
 
                                     <ItemsControl ItemsSource="{Binding SourceProperties}">
                                         <ItemsControl.ItemsPanel>
@@ -90,7 +118,21 @@
                                 </StackPanel>
 
                                 <!-- Data rows -->
-                                <ItemsControl ItemsSource="{Binding Rows}">
+                                <ItemsControl ItemsSource="{Binding RowsView}" VirtualizingPanel.IsVirtualizing="True"
+                                              VirtualizingPanel.ScrollUnit="Pixel" ScrollViewer.CanContentScroll="True">
+                                    <ItemsControl.Template>
+                                        <ControlTemplate TargetType="ItemsControl">
+                                            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                                                          CanContentScroll="True" Padding="0,0,0,16">
+                                                <ItemsPresenter/>
+                                            </ScrollViewer>
+                                        </ControlTemplate>
+                                    </ItemsControl.Template>
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <VirtualizingStackPanel/>
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
                                             <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
@@ -103,12 +145,16 @@
                                                     </ItemsControl.ItemsPanel>
                                                     <ItemsControl.ItemTemplate>
                                                         <DataTemplate>
-                                                            <TextBox Width="180" Margin="0,0,8,0" Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}"/>
+                                                            <ComboBox Style="{StaticResource MatchValueCombo}" Width="180" Margin="0,0,8,0"
+                                                                      ItemsSource="{Binding Suggestions}"
+                                                                      Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}"/>
                                                         </DataTemplate>
                                                     </ItemsControl.ItemTemplate>
                                                 </ItemsControl>
 
-                                                <TextBox Width="200" Margin="0,0,8,0" Text="{Binding TargetValue, UpdateSourceTrigger=PropertyChanged}"/>
+                                                <ComboBox Style="{StaticResource MatchTargetCombo}" Width="200" Margin="0,0,8,0"
+                                                          ItemsSource="{Binding TargetSuggestions}"
+                                                          Text="{Binding TargetValue, UpdateSourceTrigger=PropertyChanged}"/>
 
                                                 <Button Style="{StaticResource CrossButton}" ToolTip="Delete this row"
                                                         Command="{Binding DataContext.RemoveRowCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
@@ -117,7 +163,7 @@
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
-                            </StackPanel>
+                            </DockPanel>
                         </ScrollViewer>
                     </DockPanel>
                 </DataTemplate>

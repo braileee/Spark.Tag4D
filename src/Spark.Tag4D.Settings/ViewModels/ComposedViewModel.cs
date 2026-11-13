@@ -7,7 +7,9 @@ using Spark.Tag4D.Core.Mvvm;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
+using System.ComponentModel;
 using System.Linq;
+using System.Windows.Data;
 
 namespace Spark.Tag4D.Settings.ViewModels
 {
@@ -36,9 +38,25 @@ namespace Spark.Tag4D.Settings.ViewModels
 
         public override string SheetInfo => $"Sheet: {Settings.ExcelSettings.ComposedSheet.SheetName}";
 
+        /// <summary>The composed properties shown, narrowed down by the search text.</summary>
+        public ICollectionView ComposedPropertiesView { get; }
+
+        public override string FilterHint => "Find a composed property or a property in a formula";
+
+        protected override void OnFilterChanged(string text) => ComposedPropertiesView.Refresh();
+
+        // A composed property that is still empty (just added) is never hidden, so it can be filled in.
+        private static bool Matches(ComposedProperty composed, string text)
+        {
+            return string.IsNullOrEmpty(composed.Name) && composed.Segments.Count == 0
+                || Contains(composed.Name, text) || Contains(composed.Preview, text);
+        }
+
         public ComposedViewModel(SettingsRoot settings)
         {
             Settings = settings;
+            ComposedPropertiesView = CollectionViewSource.GetDefaultView(ComposedProperties);
+            ComposedPropertiesView.Filter = item => Matches((ComposedProperty)item, FilterText.Trim());
 
             AddComposedPropertyCommand = new RelayCommand(AddComposedProperty);
             DeleteComposedPropertyCommand = new RelayCommand<ComposedProperty>(DeleteComposedProperty);

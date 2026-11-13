@@ -122,7 +122,7 @@
             <Icon Type="NamedIcon">
               <NamedIcon>Spark.Tag4D.TagElements</NamedIcon>
             </Icon>
-            <Label>Tag Elements</Label>
+            <Label>Tag</Label>
             <Description>Tag the selected elements with IFC properties</Description>
           </UserKeyinCommand>
         </CommandData>

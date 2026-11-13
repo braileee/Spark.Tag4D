@@ -1,0 +1,106 @@
+﻿<Window x:Class="Spark.Tag4D.Microstation.Views.TagView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:Spark.Tag4D.Microstation.Views"
+             xmlns:models="clr-namespace:Spark.Tag4D.UI.Controls;assembly=Spark.Tag4D.UI"
+             mc:Ignorable="d" 
+             Title="Spark.Tag4D - Tag"
+        Width="380" Height="640" MinWidth="320" MinHeight="360"
+        WindowStartupLocation="CenterScreen"
+        Topmost="True"
+        Deactivated="Window_Deactivated" PreviewLostKeyboardFocus="Window_PreviewLostKeyboardFocus">
+    <Window.Resources><ResourceDictionary>
+<ResourceDictionary.MergedDictionaries>
+<ResourceDictionary Source="pack://application:,,,/Spark.Tag4D.UI;component/Themes/Tag4D.xaml"/>
+</ResourceDictionary.MergedDictionaries>
+        <!-- Text -->
+        <DataTemplate x:Key="StringTemplate">
+            <TextBox Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}"
+                   IsEnabled="{Binding CanBeEdited, UpdateSourceTrigger=PropertyChanged}"/>
+        </DataTemplate>
+
+        <!-- Number -->
+        <DataTemplate x:Key="DoubleTemplate">
+            <TextBox Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}"
+                   IsEnabled="{Binding CanBeEdited, UpdateSourceTrigger=PropertyChanged}"/>
+        </DataTemplate>
+
+        <DataTemplate x:Key="IntTemplate">
+            <TextBox Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}"
+                   IsEnabled="{Binding CanBeEdited, UpdateSourceTrigger=PropertyChanged}"/>
+        </DataTemplate>
+
+        <!-- Boolean -->
+        <DataTemplate x:Key="BoolTemplate">
+            <CheckBox IsChecked="{Binding Value}" 
+                    IsEnabled="{Binding CanBeEdited, UpdateSourceTrigger=PropertyChanged}" />
+        </DataTemplate>
+
+        <!-- Searchable Combo -->
+        <DataTemplate x:Key="ComboTemplate">
+            <ComboBox ItemsSource="{Binding LookupValues, UpdateSourceTrigger=PropertyChanged}"
+             SelectedItem="{Binding Value, UpdateSourceTrigger=PropertyChanged}"
+             IsEditable="{Binding CanBeEdited}"
+             IsTextSearchEnabled="True"/>
+        </DataTemplate>
+
+        <models:EditorTemplateSelector
+              x:Key="EditorSelector" 
+              StringTemplate="{StaticResource StringTemplate}" 
+              DoubleTemplate="{StaticResource DoubleTemplate}" 
+              IntTemplate="{StaticResource IntTemplate}" 
+              BoolTemplate="{StaticResource BoolTemplate}" 
+              ComboTemplate="{StaticResource ComboTemplate}" />
+    </ResourceDictionary></Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Border Grid.Row="0" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="0,0,0,1" Padding="16,12">
+            <StackPanel>
+                <TextBlock Style="{StaticResource SectionText}" Text="Tag elements"/>
+                <TextBlock Style="{StaticResource MutedText}" Margin="0,2,0,0" Text="{Binding SelectedElementsInfo}"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Properties -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="16,8">
+            <ItemsControl ItemsSource="{Binding Fields}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel Margin="0,6">
+                            <TextBlock Style="{StaticResource MutedText}" FontWeight="SemiBold" Margin="0,0,0,4" Text="{Binding Name}"/>
+                            <ContentControl Content="{Binding}" ContentTemplateSelector="{StaticResource EditorSelector}"/>
+                        </StackPanel>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+
+        <!-- Actions -->
+        <Border Grid.Row="2" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="0,1,0,0" Padding="16,12">
+            <StackPanel>
+                <Button Content="Refresh selection" Command="{Binding UpdateSelectionCommand}" Margin="0,0,0,8"/>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="8"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Button Grid.Column="0" Style="{StaticResource PrimaryButton}" Content="Apply" Command="{Binding ApplyCommand}"/>
+                    <Button Grid.Column="2" Content="Update Automatic Values" Command="{Binding UpdateValuesCommand}"
+                            ToolTip="Recalculates the composed properties, expressions and exact matches. Use it when the properties were changed outside of this app, or to fix errors in the calculated values."/>
+                </Grid>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>

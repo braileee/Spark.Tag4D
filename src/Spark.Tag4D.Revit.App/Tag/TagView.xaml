@@ -1,0 +1,208 @@
+﻿<Page x:Class="Spark.Tag4D.Revit.App.Tag.TagView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:models="clr-namespace:Spark.Tag4D.UI.Controls;assembly=Spark.Tag4D.UI"
+             xmlns:controls="clr-namespace:Spark.Tag4D.UI.Controls;assembly=Spark.Tag4D.UI"
+             mc:Ignorable="d"
+             d:DesignHeight="600" d:DesignWidth="360"
+             Background="#F6F8FB" Foreground="#0F172A"
+             FontFamily="Segoe UI Variable Text, Segoe UI" FontSize="13">
+
+    <!-- Background / Foreground / Font are set explicitly above: a Page does not pick up an implicit style from its own
+         resources, and without them the pane inherits Revit's (dark) background. -->
+    <Page.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/Spark.Tag4D.UI;component/Themes/Tag4D.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+
+            <BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
+
+            <!-- Apply is only shown when "Apply values automatically" is off -->
+            <Style x:Key="ApplyButton" TargetType="Button" BasedOn="{StaticResource PrimaryButton}">
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding ApplyAutomatically}" Value="True">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+
+            <!-- Parameter name above its editor -->
+            <Style x:Key="FieldName" TargetType="TextBlock">
+                <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+                <Setter Property="FontSize" Value="12"/>
+                <Setter Property="FontWeight" Value="SemiBold"/>
+                <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+            </Style>
+
+            <!-- Text -->
+            <DataTemplate x:Key="StringTemplate">
+                <TextBox Text="{Binding Value, UpdateSourceTrigger=LostFocus}" PreviewKeyDown="TextBox_PreviewKeyDown"/>
+            </DataTemplate>
+
+            <!-- Number -->
+            <DataTemplate x:Key="DoubleTemplate">
+                <TextBox Text="{Binding Value, UpdateSourceTrigger=LostFocus}" PreviewKeyDown="TextBox_PreviewKeyDown"/>
+            </DataTemplate>
+
+            <DataTemplate x:Key="IntTemplate">
+                <TextBox Text="{Binding Value, UpdateSourceTrigger=LostFocus}" PreviewKeyDown="TextBox_PreviewKeyDown"/>
+            </DataTemplate>
+
+            <!-- Boolean -->
+            <DataTemplate x:Key="BoolTemplate">
+                <CheckBox IsChecked="{Binding Value}" Content="Yes"/>
+            </DataTemplate>
+
+            <!-- Pick list: selection only. The whole box opens the list; typing jumps to a matching entry. -->
+            <DataTemplate x:Key="ComboTemplate">
+                <controls:SearchableComboBox ItemsSource="{Binding LookupValues}" SelectedItem="{Binding Value}"/>
+            </DataTemplate>
+
+            <!-- Values that are produced by rules (expressions, composed, exact matches): shown, not editable. -->
+            <DataTemplate x:Key="ReadOnlyTemplate">
+                <Border Background="{StaticResource DisabledBackgroundBrush}"
+                        BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                        CornerRadius="{StaticResource ControlRadius}" MinHeight="32" Padding="10,6">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock x:Name="Value" Text="{Binding Value}" Foreground="{StaticResource TextBrush}"
+                                   VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip="{Binding Value}"/>
+                        <!-- padlock -->
+                        <Path Grid.Column="1" Margin="8,0,0,0" VerticalAlignment="Center" Stretch="None"
+                              Data="M3,6 L3,4 A3,3 0 0 1 9,4 L9,6 M1.5,6 L10.5,6 L10.5,12 L1.5,12 Z"
+                              Stroke="{StaticResource DisabledBrush}" StrokeThickness="1.4" StrokeLineJoin="Round"/>
+                    </Grid>
+                </Border>
+            </DataTemplate>
+
+            <models:EditorTemplateSelector
+                x:Key="EditorSelector"
+                StringTemplate="{StaticResource StringTemplate}"
+                DoubleTemplate="{StaticResource DoubleTemplate}"
+                IntTemplate="{StaticResource IntTemplate}"
+                BoolTemplate="{StaticResource BoolTemplate}"
+                ComboTemplate="{StaticResource ComboTemplate}"
+                ReadOnlyTemplate="{StaticResource ReadOnlyTemplate}"/>
+
+            <DataTemplate x:Key="FieldTemplate">
+                <StackPanel Margin="0,0,0,14">
+                    <DockPanel Margin="0,0,0,5" LastChildFill="True">
+                        <Border x:Name="AutoBadge" DockPanel.Dock="Right" Visibility="Collapsed" Margin="8,0,0,0"
+                                Background="{StaticResource AccentSoftBrush}" CornerRadius="3" Padding="5,1">
+                            <TextBlock Text="AUTO" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource AccentBrush}"
+                                       ToolTip="Calculated from other values"/>
+                        </Border>
+                        <TextBlock Style="{StaticResource FieldName}" Text="{Binding Name}" ToolTip="{Binding Name}"/>
+                    </DockPanel>
+                    <ContentControl Content="{Binding}" ContentTemplateSelector="{StaticResource EditorSelector}"/>
+                    <!-- Shown when the pane cleared this value because it no longer matches the value of another property -->
+                    <Border x:Name="NoticeBox" Margin="0,6,0,0" Padding="8,6" CornerRadius="6" BorderThickness="1"
+                            Background="#FFF6E0" BorderBrush="#F0C36D" ToolTip="{Binding Notice}">
+                        <DockPanel>
+                            <Path DockPanel.Dock="Left" Margin="0,2,8,0" VerticalAlignment="Top" Stretch="None" Fill="#B45309"
+                                  Data="M7,0.5 L13.5,12.5 L0.5,12.5 Z M6.2,4.5 L7.8,4.5 L7.6,8.5 L6.4,8.5 Z M6.3,9.6 L7.7,9.6 L7.7,11 L6.3,11 Z"
+                                  StrokeThickness="0" />
+                            <TextBlock Text="{Binding Notice}" TextWrapping="Wrap" FontSize="12" Foreground="#7A3E00"/>
+                        </DockPanel>
+                    </Border>
+                </StackPanel>
+                <DataTemplate.Triggers>
+                    <DataTrigger Binding="{Binding Notice}" Value="{x:Null}">
+                        <Setter TargetName="NoticeBox" Property="Visibility" Value="Collapsed"/>
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding IsReadOnly}" Value="True">
+                        <Setter TargetName="AutoBadge" Property="Visibility" Value="Visible"/>
+                    </DataTrigger>
+                </DataTemplate.Triggers>
+            </DataTemplate>
+        </ResourceDictionary>
+    </Page.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header: title, selection and parameter search -->
+        <Border Grid.Row="0" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="0,0,0,1" Padding="16,12,16,14">
+            <StackPanel>
+                <DockPanel>
+                    <!-- Options: automatic apply and the fix of calculated values -->
+                    <Grid DockPanel.Dock="Right" VerticalAlignment="Top">
+                        <Button x:Name="OptionsButton" Content="Options  ▾" Padding="10,3" MinHeight="26" Click="OptionsButton_Click"
+                                ToolTip="Options of the Tag pane"/>
+                        <Popup x:Name="OptionsPopup" PlacementTarget="{Binding ElementName=OptionsButton}" Placement="Bottom"
+                               StaysOpen="False" AllowsTransparency="True" HorizontalOffset="0" VerticalOffset="4">
+                            <Border Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderStrongBrush}"
+                                    BorderThickness="1" CornerRadius="8" Padding="14" Width="300" Margin="0,0,8,8">
+                                <Border.Effect>
+                                    <DropShadowEffect BlurRadius="10" ShadowDepth="2" Opacity="0.25"/>
+                                </Border.Effect>
+                                <StackPanel>
+                                    <CheckBox Content="Apply values automatically" IsChecked="{Binding ApplyAutomatically}"
+                                              ToolTip="On: a picked or entered value is written to the selected elements at once. Off: values are collected and written when you click Apply."/>
+                                    <Button Margin="0,12,0,0" Content="Fix automatic values after update" Command="{Binding FixAutomaticValuesCommand}"
+                                            Click="OptionsAction_Click"
+                                            ToolTip="Recalculates the composed properties, expressions and exact matches of the selected elements. Use it after an add-in update or after the source Excel workbook was updated, so the calculated values follow the new rules."/>
+                                </StackPanel>
+                            </Border>
+                        </Popup>
+                    </Grid>
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource SectionText}" Text="Tag"/>
+                        <TextBlock Style="{StaticResource MutedText}" Margin="0,2,0,10" Text="{Binding SelectedElementsInfo}"/>
+                    </StackPanel>
+                </DockPanel>
+
+                <Grid>
+                    <TextBox x:Name="SearchBox" Padding="30,5,8,5"
+                             Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                             ToolTip="Search parameters by name"/>
+                    <!-- magnifier -->
+                    <Path Margin="10,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" IsHitTestVisible="False"
+                          Stretch="None" Data="M5,0.8 A4.2,4.2 0 1 0 5,9.2 A4.2,4.2 0 1 0 5,0.8 M8.2,8.2 L11.5,11.5"
+                          Stroke="{StaticResource DisabledBrush}" StrokeThickness="1.5"
+                          StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+                    <TextBlock Margin="31,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False"
+                               Foreground="{StaticResource DisabledBrush}" Text="Search parameters">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Text, ElementName=SearchBox}" Value="">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </Grid>
+            </StackPanel>
+        </Border>
+
+        <!-- Parameters -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="16,14,16,0">
+            <ItemsControl ItemsSource="{Binding FieldsView}" ItemTemplate="{StaticResource FieldTemplate}"/>
+        </ScrollViewer>
+
+        <!-- Actions -->
+        <Border Grid.Row="2" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="0,1,0,0" Padding="16,12">
+            <StackPanel>
+                <!-- Apply is only needed (and shown) when "Apply values automatically" is off in the options. -->
+                <Button Content="Apply" Style="{StaticResource ApplyButton}" Command="{Binding ApplyCommand}" Margin="0,0,0,8"
+                        ToolTip="Write the changed values to the selected elements"/>
+                <TextBlock Style="{StaticResource MutedText}" TextWrapping="Wrap" Text="{Binding ApplyInfo}"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Page>

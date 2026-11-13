@@ -7,6 +7,8 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.ComponentModel;
+using System.Windows.Data;
 
 namespace Spark.Tag4D.Settings.ViewModels.Support
 {
@@ -31,6 +33,10 @@ namespace Spark.Tag4D.Settings.ViewModels.Support
                     RemoveRow);
 
             AvailableColumnNames = new ObservableCollection<string>(table.AvailableColumnNames);
+
+            RowsView = CollectionViewSource.GetDefaultView(Rows);
+            RowsView.Filter = MatchesFilter;
+            Rows.CollectionChanged += (s, e) => OnPropertyChanged(nameof(RowCountText));
         }
 
         public string Name
@@ -48,6 +54,52 @@ namespace Spark.Tag4D.Settings.ViewModels.Support
         public ObservableCollection<ExactMatchRowViewModel> Rows { get; }
             = new();
 
+
+        // ----- Search ----------------------------------------------------------------------------------------------
+
+        private string _filterText = string.Empty;
+
+        /// <summary>The rows shown, narrowed down by <see cref="FilterText"/>.</summary>
+        public ICollectionView RowsView { get; }
+
+        public string FilterText
+        {
+            get => _filterText;
+            set
+            {
+                if (SetProperty(ref _filterText, value ?? string.Empty))
+                {
+                    RowsView.Refresh();
+                    OnPropertyChanged(nameof(RowCountText));
+                }
+            }
+        }
+
+        /// <summary>"12 rows", or "3 of 12 rows" while searching.</summary>
+        public string RowCountText
+        {
+            get
+            {
+                string noun = Rows.Count == 1 ? "row" : "rows";
+                return string.IsNullOrWhiteSpace(FilterText)
+                    ? $"{Rows.Count} {noun}"
+                    : $"{RowsView.Cast<object>().Count()} of {Rows.Count} {noun}";
+            }
+        }
+
+        // A row without any value (just added) is never hidden, so it can be filled in.
+        private bool MatchesFilter(object item)
+        {
+            if (string.IsNullOrWhiteSpace(_filterText) || !(item is ExactMatchRowViewModel row))
+            {
+                return true;
+            }
+
+            string text = _filterText.Trim();
+            return (string.IsNullOrEmpty(row.Source) && string.IsNullOrEmpty(row.Target))
+                || (row.Source ?? string.Empty).IndexOf(text, StringComparison.OrdinalIgnoreCase) >= 0
+                || (row.Target ?? string.Empty).IndexOf(text, StringComparison.OrdinalIgnoreCase) >= 0;
+        }
         public RelayCommand AddRowCommand { get; }
 
         public RelayCommand<ExactMatchRowViewModel>

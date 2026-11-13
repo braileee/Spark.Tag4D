@@ -55,7 +55,7 @@ dotnet publish src/Spark.Tag4D.IfcValidator -c Release -r win-x64 --self-contain
 
 `Spark.Tag4D.cfg` (in `%ProgramData%\Bentley\<MicroStation>\Configuration\Organization`, which MicroStation includes on
 start-up) sets `MS_ADDINPATH`, `MS_ADDIN_DEPENDENCYPATH` and `MS_DGNAPPS`, so the add-in is loaded automatically.
-`MS_RIBBONXML` registers `Spark.Tag4D.ribbon.xml`, which adds a **Tag4D** tab (Settings, Load Parameters, Tag Elements)
+`MS_RIBBONXML` registers `Spark.Tag4D.ribbon.xml`, which adds a **Tag4D** tab (Settings, Load Parameters, Tag)
 to the Drawing, Modeling and Visualization workflows. The buttons run the `Tag4D ...` key-ins from `commands.xml`.
 The key-ins also work from the key-in browser if the ribbon is unavailable.
 

@@ -7,7 +7,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
-using System.Windows.Media.Animation;
+using System.Windows.Data;
 
 namespace Spark.Tag4D.Settings.Models
 {
@@ -38,6 +38,46 @@ namespace Spark.Tag4D.Settings.Models
 
         public ObservableCollection<PicklistItemObservable> Items { get; }
             = new ObservableCollection<PicklistItemObservable>();
+
+        public PicklistObservable()
+        {
+            ItemsView = CollectionViewSource.GetDefaultView(Items);
+            Items.CollectionChanged += (s, e) => OnPropertyChanged(nameof(ValueCountText));
+        }
+
+        /// <summary>The values shown, narrowed down while searching.</summary>
+        public ICollectionView ItemsView { get; }
+
+        /// <summary>"12 values".</summary>
+        public string ValueCountText => Items.Count == 1 ? "1 value" : $"{Items.Count} values";
+
+        /// <summary>Does the picklist match the search text by its name or by one of its values?</summary>
+        public bool Matches(string text)
+        {
+            return string.IsNullOrWhiteSpace(text) || string.IsNullOrEmpty(Name) || NameContains(text) || Items.Any(item => Contains(item.Value, text));
+        }
+
+        /// <summary>
+        /// Searching narrows the values down to the matching ones, unless the name itself matched
+        /// (then the whole picklist is wanted).
+        /// </summary>
+        public void ApplyFilter(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text) || NameContains(text))
+            {
+                ItemsView.Filter = null;
+            }
+            else
+            {
+                string trimmed = text.Trim();
+                ItemsView.Filter = item => Contains(((PicklistItemObservable)item).Value, trimmed);
+            }
+        }
+
+        private bool NameContains(string text) => Contains(Name, text);
+
+        private static bool Contains(string value, string text) =>
+            (value ?? string.Empty).IndexOf(text.Trim(), StringComparison.OrdinalIgnoreCase) >= 0;
 
         public PicklistViewModel Parent { get; set; }
 

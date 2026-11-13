@@ -28,12 +28,19 @@ dotnet test tests/Spark.Tag4D.Core.Tests
 ## Architecture
 
 - `Core` (netstandard2.0, nullable on): XLSX engine, expressions, settings, MVVM base (`ObservableObject`,
-  `RelayCommand`), `TagData.Load()` reads settings + workbook in one go.
-- `UI`: `Themes/Tag4D.xaml` design system, `FileDialogs`, `Behaviors/ComboBoxBehavior` (mouse-wheel lock).
+  `RelayCommand`), `TagData.Load()` reads settings + workbook in one go, `PropertyFieldFactory` builds the fields of the
+  Tag pane (shared by Revit and MicroStation), `PropertyField` holds the value/picklist/match-narrowing logic.
+- `UI`: `Themes/Tag4D.xaml` design system, `FileDialogs`, `Behaviors/ComboBoxBehavior` (mouse-wheel lock), `Controls/`
+  (`SearchableComboBox`, `EditorTemplateSelector` for the Tag pane editors).
 - `Settings`: tabs are `SettingsPageViewModel`s (`Title`, `SheetInfo`, `IsDirty`, `Save()`); `SettingsViewModel` owns the
-  shared Save/Cancel and `SaveAll()`; `SettingsView` asks about unsaved changes on close.
-- `Revit.App`: `ParametersCommand` (modeless Parameters window; load/delete parameters, IFC mapping file) and the Tag
-  Elements dockable pane. Revit API work runs through `RevitEventWrapper<T>` external events.
+  shared Save/Cancel and `SaveAll()`; `SettingsView` asks about unsaved changes on close. Matches cells are editable pick
+  lists fed by the saved picklists (values outside the picklist are marked amber). Every page has the shared
+  `UI/Controls/SearchBox` bound to `SettingsPageViewModel.FilterText` (pages narrow their views in `OnFilterChanged`).
+- `Revit.App` is organised by feature (folder = namespace; the csproj adds them as global usings):
+  `ProjectSettings/` (ribbon "Settings": modeless window, load/delete parameters, IFC mapping file, model sync with
+  rollback), `Tag/` (ribbon "Tag": dockable pane; Options popup with "Apply values automatically" and "Fix automatic values after update"; unapplied edits are asked about on selection change), `Review/` (ribbon "Review": missing-value isolation),
+  `Infrastructure/` (`PaneToggle`, `ParameterCache`, `TagDataEvents`). Revit API work runs through
+  `RevitEventWrapper<T>` external events. The panes start closed and share one tab stack (`PaneToggle` hides the other).
 - `Microstation`: net48 add-in loaded via `MS_DGNAPPS`; keyins in `commands.xml`; ribbon in
   `Ribbon/Spark.Tag4D.ribbon.xml` (registered with `MS_RIBBONXML`); icons in `Icons/`.
 

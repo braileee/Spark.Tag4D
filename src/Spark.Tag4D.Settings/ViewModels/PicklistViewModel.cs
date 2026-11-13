@@ -8,7 +8,9 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Linq;
+using System.ComponentModel;
 using System.Windows;
+using System.Windows.Data;
 
 namespace Spark.Tag4D.Settings.ViewModels
 {
@@ -23,6 +25,24 @@ namespace Spark.Tag4D.Settings.ViewModels
         public RelayCommand AddPicklistCommand { get; }
 
         public RelayCommand<PicklistObservable> RemovePicklistCommand { get; }
+
+        // ----- Search ----------------------------------------------------------------------------------------------
+
+        /// <summary>The picklists shown, narrowed down by the search text.</summary>
+        public ICollectionView PicklistsView { get; }
+
+        public override string FilterHint => "Find a picklist or value";
+
+        protected override void OnFilterChanged(string text)
+        {
+            foreach (PicklistObservable picklist in Picklists)
+            {
+                picklist.ApplyFilter(text);
+            }
+
+            PicklistsView.Refresh();
+        }
+
 
         public override string Title => "Picklists";
 
@@ -42,6 +62,8 @@ namespace Spark.Tag4D.Settings.ViewModels
         public PicklistViewModel(SettingsRoot settingsRoot)
         {
             SettingsRoot = settingsRoot;
+            PicklistsView = CollectionViewSource.GetDefaultView(Picklists);
+            PicklistsView.Filter = item => ((PicklistObservable)item).Matches(FilterText.Trim());
             LoadFromExcel();
 
             AddItemCommand = new RelayCommand<PicklistObservable>(AddItem);

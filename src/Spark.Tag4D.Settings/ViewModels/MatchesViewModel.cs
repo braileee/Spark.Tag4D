@@ -27,6 +27,7 @@ namespace Spark.Tag4D.Settings.ViewModels
 
             string excelFilePath = ExcelDataLoader.LoadOrPromptExcelFilePath(settingsRoot.ExcelSettings.FileLinkSettings);
             AvailableProperties = ExcelDataLoader.GetPropertyNames(excelFilePath, settingsRoot.ExcelSettings.PropertiesSheet);
+            LoadPicklists(excelFilePath);
             Load(excelFilePath);
         }
 
@@ -40,7 +41,39 @@ namespace Spark.Tag4D.Settings.ViewModels
 
         public override string SheetInfo => "Sheets: \"<name> Match\"";
 
+        public override string FilterHint => "Find a value in the match tables";
+
+        protected override void OnFilterChanged(string text)
+        {
+            foreach (MatchTableViewModel table in MatchTables)
+            {
+                table.FilterText = text;
+            }
+        }
+
         public List<string> AvailableProperties { get; } = new List<string>();
+
+        private Dictionary<string, IReadOnlyList<string>> _picklists = new Dictionary<string, IReadOnlyList<string>>();
+
+        /// <summary>The cells of the tables offer the picklist of their property, as saved in the workbook.</summary>
+        private void LoadPicklists(string filePath)
+        {
+            try
+            {
+                _picklists = ExcelDataLoader.LoadPicklistGroups(filePath, _settingsRoot.ExcelSettings.PicklistSheet)
+                    .GroupBy(group => group.GroupName)
+                    .ToDictionary(group => group.Key, group => (IReadOnlyList<string>)group.First().Values);
+            }
+            catch (System.Exception)
+            {
+                _picklists = new Dictionary<string, IReadOnlyList<string>>(); // suggestions are a convenience, never a reason to fail
+            }
+        }
+
+        private IReadOnlyList<string> ValuesFor(string propertyName)
+        {
+            return propertyName != null && _picklists.TryGetValue(propertyName, out IReadOnlyList<string> values) ? values : System.Array.Empty<string>();
+        }
 
         private void Load(string filePath)
         {
@@ -91,6 +124,7 @@ namespace Spark.Tag4D.Settings.ViewModels
                     tableVm.Rows.Add(rowVm);
                 }
 
+                tableVm.Attach(ValuesFor);
                 MatchTables.Add(tableVm);
             }
 
@@ -124,6 +158,8 @@ namespace Spark.Tag4D.Settings.ViewModels
                 AvailableProperties = new ObservableCollection<string>(AvailableProperties),
             });
 
+            matchTableViewModel.Attach(ValuesFor);
+            matchTableViewModel.FilterText = FilterText.Trim();
             MatchTables.Add(matchTableViewModel);
 
             MarkDirty();

@@ -2,13 +2,21 @@
 
   <Import Project="..\..\build\Revit.props" />
 
-  <!-- Revit commands, event handlers and the tagging pane. -->
+  <!-- Revit add-in features: Tag (pane), Review (pane), ProjectSettings (window) and shared Infrastructure. -->
   <PropertyGroup>
     <UseWPF>true</UseWPF>
     <RootNamespace>Spark.Tag4D.Revit.App</RootNamespace>
     <AssemblyName>Spark.Tag4D.Revit.App</AssemblyName>
     <Nullable>disable</Nullable>
   </PropertyGroup>
+
+  <!-- The features live in their own folders/namespaces; they share these namespaces freely. -->
+  <ItemGroup>
+    <Using Include="Spark.Tag4D.Revit.App.Infrastructure" />
+    <Using Include="Spark.Tag4D.Revit.App.ProjectSettings" />
+    <Using Include="Spark.Tag4D.Revit.App.Review" />
+    <Using Include="Spark.Tag4D.Revit.App.Tag" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Spark.Tag4D.Core\Spark.Tag4D.Core.csproj" />

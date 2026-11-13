@@ -41,6 +41,16 @@ namespace Spark.Tag4D.Settings.ViewModels
 
         public override string SheetInfo => "Sheets: \"<name> Exact Match\"";
 
+        public override string FilterHint => "Find a value in the exact match tables";
+
+        protected override void OnFilterChanged(string text)
+        {
+            foreach (ExactMatchTableViewModel table in Tables)
+            {
+                table.FilterText = text;
+            }
+        }
+
         public SettingsRoot SettingsRoot { get; }
 
         private void Load(string path)

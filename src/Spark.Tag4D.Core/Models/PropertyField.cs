@@ -18,6 +18,9 @@ namespace Spark.Tag4D.Core.Models
     /// <summary>An editable property shown in the tagging pane.</summary>
     public sealed class PropertyField : ObservableObject
     {
+        /// <summary>Shown as the value when the selected elements have different values for the property.</summary>
+        public const string VariesValue = "***VARIES***";
+
         private object? _value;
         private bool _changed;
         private bool _canBeEdited = true;
@@ -86,7 +89,8 @@ namespace Spark.Tag4D.Core.Models
         public static void ReloadChangedFields(
             PropertyField? changedField,
             ObservableCollection<PropertyField> fields,
-            List<PropertyValueMatch> propertyValueMatches)
+            List<PropertyValueMatch> propertyValueMatches,
+            bool clearInvalidValues = false)
         {
             if (changedField is null)
             {
@@ -124,7 +128,41 @@ namespace Spark.Tag4D.Core.Models
                 }
 
                 field.NarrowLookup(sourceMatches.Where(match => match.PropertyNameTarget == field.Name).ToList(), fieldsByName);
+
+                if (clearInvalidValues)
+                {
+                    field.ClearIfNotAllowed(changedField);
+                }
             }
+        }
+
+        /// <summary>
+        /// Set when the value was cleared by the pane (not by the user), with the reason; null otherwise.
+        /// </summary>
+        public string? Notice
+        {
+            get => _notice;
+            set => SetProperty(ref _notice, value);
+        }
+
+        private string? _notice;
+
+        /// <summary>
+        /// After a source field changed: a value that the match table no longer allows is cleared, and the reason is kept
+        /// in <see cref="Notice"/> so the user can see what happened.
+        /// </summary>
+        private void ClearIfNotAllowed(PropertyField source)
+        {
+            string? current = Value?.ToString();
+
+            if (string.IsNullOrEmpty(current) || LookupValues == null || LookupValues.Count == 0 || LookupValues.Contains(current!))
+            {
+                return;
+            }
+
+            // The value is set first: the pane clears the notice of a field whenever its value changes.
+            Value = null;
+            Notice = $"Cleared \"{current}\": it does not match {source.Name} = \"{source.Value}\" in the workbook.";
         }
 
         private void NarrowLookup(List<PropertyValueMatch> matches, Dictionary<string, PropertyField> fieldsByName)

@@ -8,7 +8,8 @@ namespace Spark.Tag4D.Core
         public const string PanelNameExport = "Export";
         public const string PanelNameViews = "Views";
         public const string PanelNameIfc = "IFC";
-        public const string ParametersTagElementsPaneId = "3363BB74-9044-4601-8BB7-96C7D36A7E74";
+        public const string TagPaneId = "3363BB74-9044-4601-8BB7-96C7D36A7E74";
+        public const string ReviewPaneId = "B4D1F6A2-6C3E-4E57-9B0A-5E2C8D7A1F43";
 
         /// <summary>Folder (next to the assembly) that holds the default workbook and Settings.json.</summary>
         public const string FilesFolder = "Files";

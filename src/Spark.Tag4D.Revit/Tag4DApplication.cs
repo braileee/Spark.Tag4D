@@ -4,9 +4,9 @@ using Autodesk.Revit.UI.Events;
 using Spark.Tag4D.Core;
 using Spark.Tag4D.Core.Utils;
 using Spark.Tag4D.Revit.Core.Models;
-using Spark.Tag4D.Revit.App.Commands;
-using Spark.Tag4D.Revit.App.ViewModels;
-using Spark.Tag4D.Revit.App.Views;
+using Spark.Tag4D.Revit.App.ProjectSettings;
+using Spark.Tag4D.Revit.App.Review;
+using Spark.Tag4D.Revit.App.Tag;
 using System;
 using System.IO;
 using System.Reflection;
@@ -35,8 +35,9 @@ namespace Spark.Tag4D.Revit
             return File.Exists(path) ? Assembly.LoadFrom(path) : null;
         }
 
-        public ParametersTagElementsView ParametersTagElementsView { get; private set; }
-        public DockablePaneId IfcTagElementsPaneId { get; private set; }
+        public TagView TagView { get; private set; }
+        public ReviewView ReviewView { get; private set; }
+        public DockablePaneId TagPaneId { get; private set; }
         public UIControlledApplication UIControlledApplication { get; private set; }
 
         public Result OnStartup(UIControlledApplication application)
@@ -48,18 +49,22 @@ namespace Spark.Tag4D.Revit
                 ribbon.AddTab(Constants.TabName);
                 RibbonPanel panelIfc = ribbon.AddPanel(Constants.TabName, Constants.PanelNameIfc);
 
-                ParametersTagElementsView = new ParametersTagElementsView();
-                IfcTagElementsPaneId = new DockablePaneId(new Guid(Constants.ParametersTagElementsPaneId));
-                application.RegisterDockablePane(IfcTagElementsPaneId, "IFC Tag Elements", ParametersTagElementsView);
-                HidePane(application, IfcTagElementsPaneId);
+                TagView = new TagView();
+                TagPaneId = new DockablePaneId(new Guid(Constants.TagPaneId));
+                application.RegisterDockablePane(TagPaneId, "Tag", TagView);
+                HidePane(application, TagPaneId);
+
+                ReviewView = new ReviewView();
+                application.RegisterDockablePane(new DockablePaneId(new Guid(Constants.ReviewPaneId)), "Review", ReviewView);
 
                 application.ViewActivated -= ApplicationViewActivated;
                 application.ViewActivated += ApplicationViewActivated;
                 string assemblyFolder = AssemblyUtils.GetFolder(typeof(Tag4DApplication));
-                string commandsAssemblyPath = typeof(ParametersCommand).Assembly.Location;
+                string commandsAssemblyPath = typeof(SettingsCommand).Assembly.Location;
 
-                AddButton(ribbon, panelIfc, commandsAssemblyPath, assemblyFolder, "Parameters", typeof(ParametersCommand), "Parameters_32.png", "Load or delete the IFC parameters in the project, edit the settings and generate the IFC mapping file");
-                AddButton(ribbon, panelIfc, commandsAssemblyPath, assemblyFolder, "Tag Elements", typeof(ParametersTagElementsCommand), "TagElements_32.png", "Tag the selected elements with IFC properties");
+                AddButton(ribbon, panelIfc, commandsAssemblyPath, assemblyFolder, "Settings", typeof(SettingsCommand), "Parameters_32.png", "Edit the Tag 4D settings, load or delete the 4D parameters in the project and generate the IFC mapping file");
+                AddButton(ribbon, panelIfc, commandsAssemblyPath, assemblyFolder, "Tag", typeof(TagCommand), "TagElements_32.png", "Tag the selected elements with 4D property values");
+                AddButton(ribbon, panelIfc, commandsAssemblyPath, assemblyFolder, "Review", typeof(ReviewCommand), "Review_32.png", "Find the elements that have no value in the chosen 4D parameters and isolate them in a 3D view");
             }
             catch (Exception exception)
             {
@@ -89,11 +94,30 @@ namespace Spark.Tag4D.Revit
             }
 
             UIApplication uiapp = sender as UIApplication;
-            ParametersTagElementsViewModel parametersTagElementsViewModel = new ParametersTagElementsViewModel(uiapp);
-            ParametersTagElementsView.DataContext = parametersTagElementsViewModel;
+            // One view model for the whole session: it reads the workbook once and follows selection changes itself.
+            if (!(TagView.DataContext is TagViewModel))
+            {
+                TagView.DataContext = new TagViewModel(uiapp);
+            }
 
-            HidePane(UIControlledApplication, IfcTagElementsPaneId);
+            // Created once, here, because the external event of the pane needs a valid Revit API context.
+            // (The parameter list is re-read with the Reload button; reading the workbook on every view change is slow.)
+            if (!(ReviewView.DataContext is ReviewViewModel))
+            {
+                ReviewView.DataContext = new ReviewViewModel();
+            }
+
+            // Revit restores the panes of the previous session; the add-in panes must start closed. Only done once,
+            // so that a pane the user opened stays open when they switch views.
+            if (!panesReset)
+            {
+                panesReset = true;
+                HidePane(UIControlledApplication, TagPaneId);
+                HidePane(UIControlledApplication, new DockablePaneId(new Guid(Constants.ReviewPaneId)));
+            }
         }
+
+        private bool panesReset;
 
         private void HidePane(UIControlledApplication app, DockablePaneId id)
         {

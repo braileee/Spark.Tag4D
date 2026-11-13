@@ -1,6 +1,7 @@
 ﻿<UserControl x:Class="Spark.Tag4D.Settings.Views.ExactMatchesView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:Spark.Tag4D.UI.Controls;assembly=Spark.Tag4D.UI">
     <UserControl.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
@@ -19,6 +20,7 @@
                 </Border>
                 <StackPanel Orientation="Horizontal">
                     <Button Style="{StaticResource ActionButton}" Content="+  Add Table" Command="{Binding AddTableCommand}"/>
+                    <controls:SearchBox Margin="16,0,0,0" Text="{Binding FilterText}" Hint="{Binding FilterHint}"/>
                 </StackPanel>
             </DockPanel>
         </Border>

@@ -150,8 +150,8 @@ namespace Spark.Tag4D.Microstation
 
                 LoadDgnData();
 
-                ParametersTagElementsView parametersTagElementsView = new ParametersTagElementsView();
-                parametersTagElementsView.DataContext = new ParametersTagElementsViewModel(dgnFile, SettingsRoot, PropertySetItems, PicklistGroups, LayerMappingItems, ExpressionItems, PropertyValueMatches, elements, ComposedItems, PropertyValueExactMatches);
+                TagView parametersTagElementsView = new TagView();
+                parametersTagElementsView.DataContext = new TagViewModel(dgnFile, SettingsRoot, PropertySetItems, PicklistGroups, LayerMappingItems, ExpressionItems, PropertyValueMatches, elements, ComposedItems, PropertyValueExactMatches);
                 parametersTagElementsView.Show();
 
             }

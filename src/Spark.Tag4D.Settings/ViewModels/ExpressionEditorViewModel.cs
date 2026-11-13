@@ -5,7 +5,9 @@ using Spark.Tag4D.Core.Mvvm;
 
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Linq;
+using System.Windows.Data;
 
 namespace Spark.Tag4D.Settings.ViewModels
 {
@@ -28,9 +30,25 @@ namespace Spark.Tag4D.Settings.ViewModels
 
         public override string SheetInfo => $"Sheet: {SettingsRoot.ExcelSettings.ExpressionSheet.SheetName}";
 
+        /// <summary>The rules shown, narrowed down by the search text.</summary>
+        public ICollectionView RulesView { get; }
+
+        public override string FilterHint => "Find a rule by property or function";
+
+        protected override void OnFilterChanged(string text) => RulesView.Refresh();
+
+        // A rule that is still empty (just added) is never hidden, so it can be filled in.
+        private static bool Matches(ExpressionRuleViewModel rule, string text)
+        {
+            bool empty = string.IsNullOrEmpty(rule.SourcePropertyName) && string.IsNullOrEmpty(rule.Function) && string.IsNullOrEmpty(rule.TargetPropertyName);
+            return empty || Contains(rule.SourcePropertyName, text) || Contains(rule.Function, text) || Contains(rule.TargetPropertyName, text);
+        }
+
         public ExpressionEditorViewModel(SettingsRoot settingsRoot)
         {
             SettingsRoot = settingsRoot;
+            RulesView = CollectionViewSource.GetDefaultView(Rules);
+            RulesView.Filter = item => Matches((ExpressionRuleViewModel)item, FilterText.Trim());
 
             ExcelFilePath = ExcelDataLoader.LoadOrPromptExcelFilePath(settingsRoot.ExcelSettings.FileLinkSettings);
 

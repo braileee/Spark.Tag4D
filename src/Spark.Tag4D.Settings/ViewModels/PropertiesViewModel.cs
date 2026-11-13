@@ -7,7 +7,9 @@ using Spark.Tag4D.Core.Mvvm;
 
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Linq;
+using System.Windows.Data;
 
 namespace Spark.Tag4D.Settings.ViewModels
 {
@@ -27,9 +29,26 @@ namespace Spark.Tag4D.Settings.ViewModels
 
         public override string SheetInfo => $"Sheet: {SettingsRoot.ExcelSettings.PropertiesSheet.SheetName}";
 
+        /// <summary>The property sets shown, narrowed down by the search text.</summary>
+        public ICollectionView PropertySetsView { get; }
+
+        public override string FilterHint => "Find a property set or property";
+
+        protected override void OnFilterChanged(string text)
+        {
+            foreach (PropertySetItemObservable set in PropertySets)
+            {
+                set.ApplyFilter(text);
+            }
+
+            PropertySetsView.Refresh();
+        }
+
         public PropertiesViewModel(SettingsRoot settingsRoot)
         {
             SettingsRoot = settingsRoot;
+            PropertySetsView = CollectionViewSource.GetDefaultView(PropertySets);
+            PropertySetsView.Filter = item => ((PropertySetItemObservable)item).Matches(FilterText.Trim());
 
             AddPropertySetCommand = new RelayCommand(AddPropertySet);
             RemovePropertySetCommand = new RelayCommand<PropertySetItemObservable>(RemovePropertySet);

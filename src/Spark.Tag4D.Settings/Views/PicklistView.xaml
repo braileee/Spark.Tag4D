@@ -1,6 +1,7 @@
 ﻿<UserControl x:Class="Spark.Tag4D.Settings.Views.PicklistView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:Spark.Tag4D.UI.Controls;assembly=Spark.Tag4D.UI"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:local="clr-namespace:Spark.Tag4D.Settings.Views"
@@ -36,13 +37,14 @@
                 </Border>
                 <StackPanel Orientation="Horizontal">
                     <Button Style="{StaticResource ActionButton}" Content="+  Add Picklist" Command="{Binding AddPicklistCommand}"/>
+                    <controls:SearchBox Margin="16,0,0,0" Text="{Binding FilterText}" Hint="{Binding FilterHint}"/>
                 </StackPanel>
             </DockPanel>
         </Border>
 
         <!-- Columns side by side: the strip scrolls horizontally, every column takes the full height and scrolls its own values -->
         <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
-            <ItemsControl ItemsSource="{Binding Picklists}" Margin="16,16,4,16">
+            <ItemsControl ItemsSource="{Binding PicklistsView}" Margin="16,16,4,16">
 
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
@@ -52,7 +54,7 @@
 
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <Border Width="250" Margin="0,0,12,0"
+                        <Border Width="310" Margin="0,0,12,0"
                                 Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}"
                                 BorderThickness="1" CornerRadius="10">
                             <DockPanel>
@@ -67,7 +69,12 @@
                                             <ColumnDefinition Width="Auto"/>
                                             <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
 
+                                        <!-- The name gets the whole width of the header, so long names are fully visible -->
                                         <ComboBox Style="{StaticResource PicklistNameCombo}"
                                                   ItemsSource="{Binding DataContext.AvailablePicklistGroupNames, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                   SelectedItem="{Binding Name, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True, NotifyOnValidationError=True}"
@@ -80,12 +87,14 @@
                                         <Button Grid.Column="2" Style="{StaticResource CrossButton}" Margin="4,0,0,0" ToolTip="Delete this picklist"
                                                 Command="{Binding DataContext.RemovePicklistCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 CommandParameter="{Binding}"/>
+
+                                        <TextBlock Grid.Row="1" Grid.ColumnSpan="3" Style="{StaticResource MutedText}" Margin="2,6,0,0" Text="{Binding ValueCountText}"/>
                                     </Grid>
                                 </Border>
 
                                 <!-- Values -->
                                 <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                                    <ItemsControl ItemsSource="{Binding Items}" Margin="10,10,4,10">
+                                    <ItemsControl ItemsSource="{Binding ItemsView}" Margin="10,10,4,10">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>
                                                 <Grid Margin="0,0,0,6">
