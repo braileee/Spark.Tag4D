@@ -26,6 +26,18 @@ namespace Spark.Tag4D.Revit.App.EventHandlers
                     case ParametersOperation.Load:
                         ProjectParametersGeneration.CreateProjectParameters(document, options.PropertySetItems, progress);
                         break;
+                    case ParametersOperation.Synchronize:
+                        if (options.PropertySetItemsToDelete.Count > 0)
+                        {
+                            ProjectParametersGeneration.DeleteProjectParameters(document, options.PropertySetItemsToDelete, progress);
+                        }
+
+                        if (options.PropertySetItems.Count > 0)
+                        {
+                            ProjectParametersGeneration.CreateProjectParameters(document, options.PropertySetItems, progress);
+                        }
+
+                        break;
                     case ParametersOperation.Delete:
                         ProjectParametersGeneration.DeleteProjectParameters(document, options.PropertySetItems, progress);
                         break;

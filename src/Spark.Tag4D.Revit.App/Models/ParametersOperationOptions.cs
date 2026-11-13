@@ -6,7 +6,9 @@ namespace Spark.Tag4D.Revit.App.Models
     public enum ParametersOperation
     {
         Load,
-        Delete
+        Delete,
+        /// <summary>Deletes <see cref="ParametersOperationOptions.PropertySetItemsToDelete"/>, then creates <see cref="ParametersOperationOptions.PropertySetItems"/>.</summary>
+        Synchronize
     }
 
     public class ParametersOperationOptions
@@ -14,6 +16,8 @@ namespace Spark.Tag4D.Revit.App.Models
         public ParametersOperation Operation { get; set; }
 
         public List<PropertySetItem> PropertySetItems { get; set; } = new List<PropertySetItem>();
+
+        public List<PropertySetItem> PropertySetItemsToDelete { get; set; } = new List<PropertySetItem>();
 
         public OperationProgress Progress { get; set; }
     }

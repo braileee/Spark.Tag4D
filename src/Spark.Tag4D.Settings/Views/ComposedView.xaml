@@ -150,7 +150,7 @@
                                 <!-- Formula: segments left to right, "+ Segment" adds the next one on the right -->
                                 <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
                                     <StackPanel Orientation="Horizontal" Background="Transparent" Margin="0,2,0,12" AllowDrop="True"
-                                                PreviewDragOver="Row_PreviewDragOver" PreviewDrop="Row_PreviewDrop">
+                                                DragOver="Row_DragOver" Drop="Row_Drop">
                                         <ItemsControl ItemsSource="{Binding Segments}" ItemTemplate="{StaticResource SegmentTemplate}">
                                             <ItemsControl.ItemsPanel>
                                                 <ItemsPanelTemplate>

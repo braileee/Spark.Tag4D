@@ -1,5 +1,6 @@
 ﻿using Spark.Tag4D.Core.Configuration;
 using Spark.Tag4D.Core.Mvvm;
+using Spark.Tag4D.Settings.Services;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -103,7 +104,104 @@ namespace Spark.Tag4D.Settings.ViewModels
             }
 
             StatusText = $"All changes saved at {DateTime.Now:HH:mm:ss}.";
+
+            ModelSyncChange change = PropertiesViewModel.TakePendingChange();
+            if (change != null && !change.IsEmpty && ModelSynchronizer != null)
+            {
+                SynchronizeModel(change);
+            }
+
             return true;
+        }
+
+        /// <summary>
+        /// Set by the host add-in when the properties of the workbook are mirrored in an open model. After a save that
+        /// added or removed properties the model is updated, the user is told, and can roll everything back.
+        /// </summary>
+        public IModelSynchronizer ModelSynchronizer { get; set; }
+
+        private void SynchronizeModel(ModelSyncChange change)
+        {
+            StatusText = $"Updating the {ModelSynchronizer.ModelName}...";
+
+            ModelSynchronizer.Apply(change, success =>
+            {
+                if (!success)
+                {
+                    StatusText = $"The {ModelSynchronizer.ModelName} was not fully updated.";
+                    MessageBox.Show(
+                        $"The properties were saved, but the {ModelSynchronizer.ModelName} could not be fully updated. See the activity log of the Parameters window.",
+                        "Spark.Tag4D Settings",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Warning);
+                    return;
+                }
+
+                StatusText = $"The {ModelSynchronizer.ModelName} was updated: {change.AddedCount} added, {change.RemovedCount} removed.";
+
+                MessageBoxResult answer = MessageBox.Show(
+                    Describe(change)
+                    + $"{Environment.NewLine}Do you want to roll these changes back?{Environment.NewLine}"
+                    + "Yes - restore the previous Properties sheet and the model.  No - keep the changes.",
+                    "Spark.Tag4D - model updated",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Information,
+                    MessageBoxResult.No);
+
+                if (answer == MessageBoxResult.Yes)
+                {
+                    RollBack(change);
+                }
+            });
+        }
+
+        private void RollBack(ModelSyncChange change)
+        {
+            ModelSynchronizer.Rollback(change, success =>
+            {
+                if (!success)
+                {
+                    StatusText = "The rollback was not completed.";
+                    MessageBox.Show(
+                        $"The {ModelSynchronizer.ModelName} could not be fully restored, so the Properties sheet was left as saved. See the activity log.",
+                        "Spark.Tag4D Settings",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Warning);
+                    return;
+                }
+
+                PropertiesViewModel.RevertLastSave();
+                StatusText = "The changes were rolled back.";
+                OnDirtyChanged();
+            });
+        }
+
+        private string Describe(ModelSyncChange change)
+        {
+            var text = new System.Text.StringBuilder();
+            text.AppendLine($"The {ModelSynchronizer.ModelName} was updated to match the saved properties.");
+            text.AppendLine();
+            AppendNames(text, "Added", change.Added);
+            AppendNames(text, "Removed", change.Removed);
+
+            if (change.RemovedCount > 0)
+            {
+                text.AppendLine("Values stored in the removed parameters are deleted; a rollback re-creates them empty.");
+            }
+
+            return text.ToString();
+        }
+
+        private static void AppendNames(System.Text.StringBuilder text, string title, List<Spark.Tag4D.Core.Models.PropertySetItem> sets)
+        {
+            var names = sets.SelectMany(set => set.PropertyItems).Select(item => item.PropertyName).ToList();
+            if (names.Count == 0)
+            {
+                return;
+            }
+
+            text.Append($"{title} ({names.Count}): {string.Join(", ", names.Take(8))}");
+            text.AppendLine(names.Count > 8 ? ", ..." : string.Empty);
         }
 
         private void OnDirtyChanged()

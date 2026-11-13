@@ -19,7 +19,17 @@ namespace Spark.Tag4D.Revit.App.Models
 
         public Action OnCompleted { get; set; }
 
-        public void Message(string text, LogLevel level = LogLevel.Info) => OnMessage?.Invoke(text, level);
+        public bool HasErrors { get; private set; }
+
+        public void Message(string text, LogLevel level = LogLevel.Info)
+        {
+            if (level == LogLevel.Error)
+            {
+                HasErrors = true;
+            }
+
+            OnMessage?.Invoke(text, level);
+        }
 
         public void Report(int done, int total) => OnProgress?.Invoke(done, total);
 

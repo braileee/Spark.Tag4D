@@ -55,7 +55,7 @@ namespace Spark.Tag4D.Revit.App.ViewModels
             LoadParametersCommand = new RelayCommand(() => RunOperation(ParametersOperation.Load), () => !IsBusy);
             DeleteParametersCommand = new RelayCommand(ConfirmAndDelete, () => !IsBusy);
             GenerateMappingCommand = new RelayCommand(GenerateMappingFile, () => !IsBusy);
-            OpenSettingsCommand = new RelayCommand(OpenSettings, () => !IsBusy);
+            OpenSettingsCommand = new RelayCommand(OpenSettings, () => !IsBusy && !isSettingsOpen);
             ClearLogCommand = new RelayCommand(() => Log.Clear());
 
             RefreshConfiguration();
@@ -155,16 +155,43 @@ namespace Spark.Tag4D.Revit.App.ViewModels
         {
             try
             {
-                new SettingsView { DataContext = new SettingsViewModel(), Owner = Application.Current?.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive) }.ShowDialog();
+                // Modeless: Revit runs external events (the model update on Save) only while its own message loop runs.
+                var view = new SettingsView
+                {
+                    DataContext = new SettingsViewModel
+                    {
+                        ModelSynchronizer = new RevitModelSynchronizer(operationHandler, AddLog),
+                    },
+                    Owner = Window.GetWindow(Application.Current?.Windows.OfType<Window>().FirstOrDefault(w => w is Views.ParametersView)),
+                };
+
+                view.Closed += (sender, args) =>
+                {
+                    IsSettingsOpen = false;
+                    AddLog("Settings closed - configuration reloaded.");
+                    RefreshConfiguration();
+                };
+
+                IsSettingsOpen = true;
+                view.Show();
             }
             catch (Exception exception)
             {
+                IsSettingsOpen = false;
                 AddLog($"The settings could not be opened: {exception.Message}", LogLevel.Error);
-                return;
             }
+        }
 
-            AddLog("Settings closed - configuration reloaded.");
-            RefreshConfiguration();
+        private bool isSettingsOpen;
+
+        private bool IsSettingsOpen
+        {
+            get => isSettingsOpen;
+            set
+            {
+                isSettingsOpen = value;
+                OpenSettingsCommand.RaiseCanExecuteChanged();
+            }
         }
 
         private void ConfirmAndDelete()

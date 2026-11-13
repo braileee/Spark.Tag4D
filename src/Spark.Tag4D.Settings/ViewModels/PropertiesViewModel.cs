@@ -2,6 +2,7 @@ using Spark.Tag4D.Core;
 using Spark.Tag4D.Core.Configuration;
 using Spark.Tag4D.Core.Models;
 using Spark.Tag4D.Settings.Models;
+using Spark.Tag4D.Settings.Services;
 using Spark.Tag4D.Core.Mvvm;
 
 using System.Collections.Generic;
@@ -39,6 +40,21 @@ namespace Spark.Tag4D.Settings.ViewModels
             string excelFilePath = ExcelDataLoader.LoadOrPromptExcelFilePath(settingsRoot.ExcelSettings.FileLinkSettings);
             List<PropertySetItem> propertySetItems = ExcelDataLoader.LoadPropertySetItems(excelFilePath, settingsRoot.ExcelSettings.PropertiesSheet);
 
+            Populate(propertySetItems);
+            _snapshot = ToModel();
+
+            PropertySets.CollectionChanged += (s, e) => MarkDirty();
+            IsDirty = false;
+        }
+
+        private List<PropertySetItem> _snapshot = new List<PropertySetItem>();
+        private List<PropertySetItem> _previousSnapshot;
+        private ModelSyncChange _pendingChange;
+
+        private void Populate(IEnumerable<PropertySetItem> propertySetItems)
+        {
+            PropertySets.Clear();
+
             foreach (var item in propertySetItems)
             {
                 var set = PropertySets.FirstOrDefault(s => s.Name == item.PropertySetName);
@@ -61,8 +77,45 @@ namespace Spark.Tag4D.Settings.ViewModels
             {
                 HookSet(set);
             }
+        }
 
-            PropertySets.CollectionChanged += (s, e) => MarkDirty();
+        private List<PropertySetItem> ToModel()
+        {
+            return PropertySets.Select(s => new PropertySetItem
+            {
+                PropertySetName = s.Name,
+                PropertyItems = s.Properties.Select(p => new PropertyItem
+                {
+                    PropertyName = p.PropertyName,
+                    DataType = p.DataType
+                }).ToList()
+            }).ToList();
+        }
+
+        /// <summary>
+        /// The properties added / removed by the last <see cref="Save"/> (null when there was none). Returns it once.
+        /// </summary>
+        public ModelSyncChange TakePendingChange()
+        {
+            ModelSyncChange change = _pendingChange;
+            _pendingChange = null;
+            return change;
+        }
+
+        /// <summary>Puts the workbook (and this tab) back to what it was before the last save.</summary>
+        public void RevertLastSave()
+        {
+            if (_previousSnapshot == null)
+            {
+                return;
+            }
+
+            string excelFilePath = ExcelDataLoader.LoadOrPromptExcelFilePath(SettingsRoot.ExcelSettings.FileLinkSettings);
+            ExcelDataLoader.SavePropertySetItems(excelFilePath, SettingsRoot.ExcelSettings.PropertiesSheet, _previousSnapshot);
+
+            _snapshot = _previousSnapshot;
+            _previousSnapshot = null;
+            Populate(_snapshot);
             IsDirty = false;
         }
 
@@ -81,19 +134,13 @@ namespace Spark.Tag4D.Settings.ViewModels
         {
             string excelFilePath = ExcelDataLoader.LoadOrPromptExcelFilePath(SettingsRoot.ExcelSettings.FileLinkSettings);
 
-            ExcelDataLoader.SavePropertySetItems(
-                excelFilePath,
-                SettingsRoot.ExcelSettings.PropertiesSheet,
-                PropertySets.Select(s => new PropertySetItem
-                {
-                    PropertySetName = s.Name,
-                    PropertyItems = s.Properties.Select(p => new PropertyItem
-                    {
-                        PropertyName = p.PropertyName,
-                        DataType = p.DataType
-                    }).ToList()
-                }).ToList()
-            );
+            List<PropertySetItem> current = ToModel();
+
+            ExcelDataLoader.SavePropertySetItems(excelFilePath, SettingsRoot.ExcelSettings.PropertiesSheet, current);
+
+            _pendingChange = ModelSyncChange.Between(_snapshot, current);
+            _previousSnapshot = _snapshot;
+            _snapshot = current;
 
             IsDirty = false;
             return true;

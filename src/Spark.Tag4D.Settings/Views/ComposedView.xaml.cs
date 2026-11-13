@@ -131,7 +131,7 @@ namespace Spark.Tag4D.Settings.Views
 
         // ---- drop on the free space of a formula: append ----------------------------------------------------------
 
-        private void Row_PreviewDragOver(object sender, DragEventArgs e)
+        private void Row_DragOver(object sender, DragEventArgs e)
         {
             e.Handled = true;
             e.Effects = Accepts(e)
@@ -139,7 +139,7 @@ namespace Spark.Tag4D.Settings.Views
                 : DragDropEffects.None;
         }
 
-        private void Row_PreviewDrop(object sender, DragEventArgs e)
+        private void Row_Drop(object sender, DragEventArgs e)
         {
             e.Handled = true;
 
